@@ -1,0 +1,9 @@
+#!/bin/sh
+make
+./adv << EOF > adv.log 2>&1
+39
+80
+21600
+4
+EOF
+
