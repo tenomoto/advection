@@ -11,7 +11,7 @@ module nisl_module
                                 interpolate_set, interpolate_bilinear, &
                                 interpolate_setuv, interpolate_bilinearuv
 	use io_module, only: save_data
-	use sphere_module, only: xyz2uv, lonlat2xyz, xy2lon
+	use sphere_module, only: xyz2uv, lonlat2xyz, xy2lon, lat2j
 	private
 	
 	real(kind=dp), parameter, public :: time_filter_param = 0.000_dp

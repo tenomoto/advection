@@ -88,7 +88,7 @@ contains
 	function lat2j(lat,ny) result(j)
 	! returns the closest Gaussian point j using approximation
 	! lat varies from NP to SP
-  ! 0 <= return value <= ny
+  ! 1 <= return value <= ny
 		implicit none
 
 		real(kind=dp), intent(in) :: lat
@@ -96,7 +96,7 @@ contains
 
 		integer(kind=i4b) :: j
 
-		j = floor(0.5_dp*(ny+1-(2.0_dp*ny+1.0_dp)*lat/pi)) ! lat = (J+1-2j)pi/(2J+1)
+		j = anint(0.5_dp*(ny+1-(2.0_dp*ny+1.0_dp)*lat/pi)) ! lat = (J+1-2j)pi/(2J+1)
 
 	end function lat2j
 

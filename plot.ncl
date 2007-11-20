@@ -9,7 +9,7 @@ begin
 	ny = nx/2
 	nt =   20
 	tstep = 5
-	dev = "pdf"
+	dev = "x11"
 	dir = "semi-lag"
 	run = "2500km_bilin"
 ;	cint =   5
@@ -22,9 +22,9 @@ begin
 ;	cmin = -3
 ;	cmax =  3
 
-	fname = dir+"/"+"history_L"+run+".dat"
+;	fname = dir+"/"+"history_L"+run+".dat"
 ;	fname = "../history.dat"
-;	fname = "history.dat"
+	fname = "history.dat"
 	a = 6.371e6
 
 	lon = fspan(0, 360.-360./nx, nx)
@@ -48,8 +48,8 @@ begin
 ;	u = fbindirread(fname1, 1, (/ny, nx/), "double")*a
 ;	v = fbindirread(fname1, 2, (/ny, nx/), "double")*a
 
-	wks = gsn_open_wks(dev, "history_ps_L"+run)
-;	wks = gsn_open_wks(dev, fname)
+;	wks = gsn_open_wks(dev, "history_ps_L"+run)
+	wks = gsn_open_wks(dev, fname)
 
 	res = True
 	res@gsnMaximize = True
@@ -64,8 +64,8 @@ begin
 	res@mpGridAndLimbOn = True
 	res@mpFillOn = False
 	res@mpOutlineBoundarySets = "NoBoundaries"
-	res@tiMainString = dir+" "+run
-;	res@tiMainString = fname
+;	res@tiMainString = dir+" "+run
+	res@tiMainString = fname
 	rese = res
 	res@cnLevelSelectionMode = "ManualLevels"
 	res@cnLevelSpacingF = 10.

@@ -63,8 +63,6 @@ contains
 					! calculate (lon,lat) from (x,y,z)
 					lat = asin(z1)
 					lon = xy2lon(x1,y1)
-!					call interpolate_bilinear(u, lon, lat, un) ! interpolate for u(lon, lat)
-!					call interpolate_bilinear(v, lon, lat, vn)
           call interpolate_bilinearuv(lon, lat, un, vn) 
 					err = sqrt((x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+(z1-z0)*(z1-z0)) ! calculate error
 					x0 = x1 ! save as the current point

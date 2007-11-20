@@ -268,7 +268,10 @@ contains
     t = lon/dlon - is(1) + 1.0_dp ! t = (lon - dlon*(i-1))/dlon
     is(3:4) = is(2:1:-1)
 
-    j = lat2j(lat,ny)
+    j = lat2j(lat,ny) 
+    if (lat>latf(j)) then 
+      j = j - 1
+    end if
     js(1:2) = j
     js(3:4) = j + 1
     u = (lat-latf(j))/(latf(j+1)-latf(j))
