@@ -9,12 +9,13 @@ module semilag_module
   use upstream_module, only: find_points
   use interpolate_module, only: interpolate_init, interpolate_clean, &
                           interpolate_set, interpolate_setd, &
-                          interpolate_bilinear, interpolate_bicubic, interpolate_polin2
+                          interpolate_bilinear, interpolate_bicubic, &
+                          interpolate_polin2, interpolate_linpol
   use io_module, only: save_data
   private
   
   real(kind=dp), parameter, public :: time_filter_param = 0.000_dp
-  integer(kind=i4b), private :: nsave = 0, n = 7
+  integer(kind=i4b), private :: nsave = 0, n = 3
   real(kind=dp), dimension(:,:), allocatable, private :: &
     gu, gv, gphi_old, gphi, gphi1, gphix, gphiy, gphixy, midlon, midlat, deplon, deplat
   complex(kind=dp), dimension(:,:), allocatable, private :: sphi1
@@ -151,8 +152,10 @@ contains
 !        call interpolate_bilinear(deplon(i,j), deplat(i,j), gphi1(i,j))
 !         call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j))
 !         call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
-        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j))
+!        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j))
 !        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
+        call interpolate_linpol(deplon(i,j), deplat(i,j), gphi1(i,j))
+!        call interpolate_linpol(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
       end do
     end do
 
