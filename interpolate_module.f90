@@ -7,6 +7,7 @@ module interpolate_module
 !   - Interpolation schemes from Numerical Recipes
 ! Author: T. Enomoto
 ! History: 
+! 2007-11-20 higher order Lagrange interpolation
 ! 2007-11-14 simplified stencil finding
 ! 2004-09-10 some simplification
 ! 2004-03
@@ -16,7 +17,7 @@ module interpolate_module
   use sphere_module, only: lon2i, lat2j
   private
 
-  integer(kind=i4b), private :: nx, ny
+  integer(kind=i4b), private :: nx, ny, n=3, nx1, nx2, ny1, ny2 
   integer(kind=i4b), dimension(4), private :: is, js
   real(kind=dp), private :: u, t, dlon
   real(kind=dp), dimension(:), allocatable, private :: lonf, latf
@@ -30,29 +31,37 @@ module interpolate_module
 
 contains
 
-  subroutine interpolate_init(f)
+  subroutine interpolate_init(f,k)
     implicit none
 
     real(kind=dp), dimension(:,:) :: f
+    integer(kind=i4b), optional :: k
 
     integer(kind=i4b) :: i, j
 
     nx = size(f,1)
     ny = size(f,2)
+    if (present(k)) then
+      n = k
+    end if
+    nx1 = 1 - (n-1) + 1
+    nx2 = nx + (n-1)
+    ny1 = 1 - (n-1)
+    ny2 = ny + (n-1)
 
-    allocate(lonf(0:nx+2), latf(-1:ny+2), ff(0:nx+2,-1:ny+2), &
-             ffx(0:nx+2,-1:ny+2), ffy(0:nx+2,-1:ny+2), ffxy(0:nx+2,-1:ny+2), &
-             fu(0:nx+2,-1:ny+2),fv(0:nx+2,-1:ny+2))
+    allocate(lonf(nx1:nx2), latf(ny1:ny2), ff(nx1:nx2,ny1:ny2), &
+             ffx(nx1:nx2,ny1:ny2), ffy(nx1:nx2,ny1:ny2), ffxy(nx1:nx2,ny1:ny2), &
+             fu(nx1:nx2,ny1:ny2),fv(nx1:nx2,ny1:ny2))
 
     dlon = 2.0_dp*pi/nx
-    do i=0, nx+2
+    do i=nx1, nx2
       lonf(i) = dlon*(i-1)
     end do
-    latf(-1)   = 0.5_dp*pi + (0.5_dp*pi - latitudes(2))
-    latf(0)    = 0.5_dp*pi + (0.5_dp*pi - latitudes(1))
     latf(1:ny) = latitudes
-    latf(ny+1) = -0.5_dp*pi + (-0.5_dp*pi - latitudes(ny))
-    latf(ny+2) = -0.5_dp*pi + (-0.5_dp*pi - latitudes(ny-1))
+    do j=1, n
+      latf(1-j)   = 0.5_dp*pi + (0.5_dp*pi - latitudes(j))
+      latf(ny+j)   = -0.5_dp*pi + (-0.5_dp*pi - latitudes(ny-j+1))
+    end do
 
   end subroutine interpolate_init
 
@@ -163,10 +172,10 @@ contains
     integer(kind=i4b) :: i1, i2, j1, j2
 
     call find_stencil(lon, lat)
-    i1 = is(1) - 1
-    i2 = is(1) + 2
-    j1 = js(1) - 1
-    j2 = js(1) + 2
+    i1 = is(1) - (n-2)
+    i2 = is(1) + (n-1)
+    j1 = js(1) - (n-2)
+    j2 = js(1) + (n-1)
     call polin2(lonf(i1:i2), latf(j1:j2), ff(i1:i2,j1:j2), lon, lat, fi, dfi)
 
 ! Bermijo and Staniforth 1992
@@ -182,14 +191,19 @@ contains
 
     real(kind=dp), dimension(:,:), intent(in) :: f
 
+    integer(kind=i4b) :: i, j
+
     ff(1:nx,1:ny) = f
-    ff(0,1:ny) = f(nx,:)
-    ff(nx+1,1:ny) = f(1,:)
-    ff(nx+2,1:ny) = f(2,:)
-    ff(:,-1) = cshift(ff(:,2),nx/2)
-    ff(:,0) = cshift(ff(:,1),nx/2)
-    ff(:,ny+1) = cshift(ff(:,ny),nx/2)
-    ff(:,ny+2) = cshift(ff(:,ny-1),nx/2)
+    do i=1, n-2
+      ff(1-i,1:ny) = f(nx-(i-1),:)
+    end do
+    do i=1, n-1
+      ff(nx+i,1:ny) = f(1+(i-1),:)
+    end do
+    do j=1, n-1
+      ff(:,1-j) = cshift(ff(:,j),nx/2)
+      ff(:,ny+j) = cshift(ff(:,ny-(j-1)),nx/2)
+    end do
 
   end subroutine interpolate_set
 
@@ -198,25 +212,25 @@ contains
 
     real(kind=dp), dimension(:,:), intent(in) :: gu, gv
 
-    fu(1:nx,1:ny) = gu
-    fu(0,1:ny) = gu(nx,:)
-    fu(nx+1,1:ny) = gu(1,:)
-    fu(nx+2,1:ny) = gu(2,:)
-! direction of u is reversed beyond poles
-    fu(:,-1) = -cshift(fu(:,2),nx/2)
-    fu(:,0) = -cshift(fu(:,1),nx/2)
-    fu(:,ny+1) = -cshift(fu(:,ny),nx/2)
-    fu(:,ny+2) = -cshift(fu(:,ny-1),nx/2)
+    integer(kind=i4b) :: i, j
 
+    fu(1:nx,1:ny) = gu
     fv(1:nx,1:ny) = gv
-    fv(0,1:ny) = gv(nx,:)
-    fv(nx+1,1:ny) = gv(1,:)
-    fv(nx+2,1:ny) = gv(2,:)
-! direction of v is reversed beyond poles
-    fv(:,-1) = -cshift(fv(:,2),nx/2)
-    fv(:,0) = -cshift(fv(:,1),nx/2)
-    fv(:,ny+1) = -cshift(fv(:,ny),nx/2)
-    fv(:,ny+2) = -cshift(fv(:,ny-1),nx/2)
+    do i=1, n-2
+      fu(1-i,1:ny) = gu(nx-(i-1),:)
+      fv(1-i,1:ny) = gv(nx-(i-1),:)
+    end do
+    do i=1, n-1
+      fu(nx+i,1:ny) = gu(1+(i-1),:)
+      fv(nx+i,1:ny) = gv(1+(i-1),:)
+    end do
+! direction of u, v is reversed beyond poles
+    do j=1, n-1
+      fu(:,1-j) = -cshift(fu(:,j),nx/2)
+      fu(:,ny+j) = -cshift(fu(:,ny-(j-1)),nx/2)
+      fv(:,1-j) = -cshift(fv(:,j),nx/2)
+      fv(:,ny+j) = -cshift(fv(:,ny-(j-1)),nx/2)
+    end do
 
   end subroutine interpolate_setuv
 
@@ -225,34 +239,30 @@ contains
 
     real(kind=dp), dimension(:,:), intent(in) :: fx, fy, fxy
 
+    integer(kind=i4b) :: i, j
+
     ffx(1:nx,1:ny) = fx
-    ffx(0,1:ny) = fx(nx,:)
-    ffx(nx+1,1:ny) = fx(1,:)
-    ffx(nx+2,1:ny) = fx(2,:)
-! direction of d/dx is reversed beyond poles
-    ffx(:,-1) = -cshift(ffx(:,2),nx/2)
-    ffx(:,0) = -cshift(ffx(:,1),nx/2)
-    ffx(:,ny+1) = -cshift(ffx(:,ny),nx/2)
-    ffx(:,ny+2) = -cshift(ffx(:,ny-1),nx/2)
-
     ffy(1:nx,1:ny) = fy
-    ffy(0,1:ny) = fy(nx,:)
-    ffy(nx+1,1:ny) = fy(1,:)
-    ffy(nx+2,1:ny) = fy(2,:)
-! direction of d/dy is reversed beyond poles
-    ffy(:,-1) = -cshift(ffy(:,2),nx/2)
-    ffy(:,0) = -cshift(ffy(:,1),nx/2)
-    ffy(:,ny+1) = -cshift(ffy(:,ny),nx/2)
-    ffy(:,ny+2) = -cshift(ffy(:,ny-1),nx/2)
-
     ffxy(1:nx,1:ny) = fxy
-    ffxy(0,1:ny) = fxy(nx,:)
-    ffxy(nx+1,1:ny) = fxy(1,:)
-    ffxy(nx+2,1:ny) = fxy(2,:)
-    ffxy(:,-1) = cshift(ffxy(:,2),nx/2)
-    ffxy(:,0) = cshift(ffxy(:,1),nx/2)
-    ffxy(:,ny+1) = cshift(ffxy(:,ny),nx/2)
-    ffxy(:,ny+2) = cshift(ffxy(:,ny-1),nx/2)
+    do i=1, n-2
+      ffx(1-i,1:ny) = fx(nx-(i-1),:)
+      ffy(1-i,1:ny) = fy(nx-(i-1),:)
+      ffxy(1-i,1:ny) = fxy(nx-(i-1),:)
+    end do
+    do i=1, n-1
+      ffx(nx+i,1:ny) = fx(1+(i-1),:)
+      ffy(nx+i,1:ny) = fy(1+(i-1),:)
+      ffxy(nx+i,1:ny) = fxy(1+(i-1),:)
+    end do
+! direction of d/dx and d/dy is reversed beyond poles
+    do j=1, n-1
+      ffx(:,1-j) = -cshift(ffx(:,j),nx/2)
+      ffx(:,ny+j) = -cshift(ffx(:,ny-(j-1)),nx/2)
+      ffy(:,1-j) = -cshift(ffy(:,j),nx/2)
+      ffy(:,ny+j) = -cshift(ffy(:,ny-(j-1)),nx/2)
+      ffxy(:,1-j) = cshift(ffxy(:,j),nx/2)
+      ffxy(:,ny+j) = cshift(ffxy(:,ny-(j-1)),nx/2)
+    end do
 
   end subroutine interpolate_setd
 

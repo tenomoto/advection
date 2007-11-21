@@ -34,7 +34,7 @@ contains
              gphi_old(nlon,nlat),gphi(nlon,nlat),gphi1(nlon,nlat), &
              gphix(nlon,nlat),gphiy(nlon,nlat),gphixy(nlon,nlat), &
              midlon(nlon,nlat),midlat(nlon,nlat),deplon(nlon,nlat),deplat(nlon,nlat))
-    call interpolate_init(gphi)
+    call interpolate_init(gphi, 4)
 
     print *, "step=0 hour=0"
     call legendre_synthesis(sphi_old,gphi_old)
@@ -152,8 +152,8 @@ contains
 !        call interpolate_bilinear(deplon(i,j), deplat(i,j), gphi1(i,j))
 !         call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j))
 !         call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
-        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j))
-!        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
+!        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j))
+        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
       end do
     end do
 
