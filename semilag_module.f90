@@ -14,7 +14,7 @@ module semilag_module
   private
   
   real(kind=dp), parameter, public :: time_filter_param = 0.000_dp
-  integer(kind=i4b), private :: nsave = 0
+  integer(kind=i4b), private :: nsave = 0, n = 7
   real(kind=dp), dimension(:,:), allocatable, private :: &
     gu, gv, gphi_old, gphi, gphi1, gphix, gphiy, gphixy, midlon, midlat, deplon, deplat
   complex(kind=dp), dimension(:,:), allocatable, private :: sphi1
@@ -34,7 +34,7 @@ contains
              gphi_old(nlon,nlat),gphi(nlon,nlat),gphi1(nlon,nlat), &
              gphix(nlon,nlat),gphiy(nlon,nlat),gphixy(nlon,nlat), &
              midlon(nlon,nlat),midlat(nlon,nlat),deplon(nlon,nlat),deplat(nlon,nlat))
-    call interpolate_init(gphi, 4)
+    call interpolate_init(gphi, n)
 
     print *, "step=0 hour=0"
     call legendre_synthesis(sphi_old,gphi_old)
@@ -144,7 +144,6 @@ contains
 !      gphiy(:,j) = (gphi_old(:,j+1)-gphi_old(:,j-1))/(latitudes(j+1)-latitudes(j-1))
 !      gphixy(:,j) = (gphix(:,j+1)-gphix(:,j-1))/(latitudes(j+1)-latitudes(j-1))
 !    end do 
-
     call interpolate_set(gphi_old)
 !    call interpolate_setd(gphix, gphiy, gphixy)
     do j=1, nlat
@@ -152,8 +151,8 @@ contains
 !        call interpolate_bilinear(deplon(i,j), deplat(i,j), gphi1(i,j))
 !         call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j))
 !         call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
-!        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j))
-        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
+        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j))
+!        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
       end do
     end do
 

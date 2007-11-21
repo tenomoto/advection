@@ -17,7 +17,7 @@ module interpolate_module
   use sphere_module, only: lon2i, lat2j
   private
 
-  integer(kind=i4b), private :: nx, ny, n=3, nx1, nx2, ny1, ny2 
+  integer(kind=i4b), private :: nx, ny, n=3, nh, nx1, nx2, ny1, ny2 
   integer(kind=i4b), dimension(4), private :: is, js
   real(kind=dp), private :: u, t, dlon
   real(kind=dp), dimension(:), allocatable, private :: lonf, latf
@@ -27,7 +27,7 @@ module interpolate_module
   public :: interpolate_init, interpolate_clean, &
             interpolate_set, interpolate_setuv, interpolate_setd, &
             interpolate_bilinear, interpolate_bilinearuv, &
-            interpolate_bicubic, interpolate_polin2
+            interpolate_bicubic, interpolate_polin2!, interpolate_linpol
 
 contains
 
@@ -44,10 +44,11 @@ contains
     if (present(k)) then
       n = k
     end if
-    nx1 = 1 - (n-1) + 1
-    nx2 = nx + (n-1)
-    ny1 = 1 - (n-1)
-    ny2 = ny + (n-1)
+    nh = n/2
+    nx1 = 1 - nh
+    nx2 = nx + nh + 1
+    ny1 = 1 - nh - 1
+    ny2 = ny + nh + 1
 
     allocate(lonf(nx1:nx2), latf(ny1:ny2), ff(nx1:nx2,ny1:ny2), &
              ffx(nx1:nx2,ny1:ny2), ffy(nx1:nx2,ny1:ny2), ffxy(nx1:nx2,ny1:ny2), &
@@ -58,7 +59,7 @@ contains
       lonf(i) = dlon*(i-1)
     end do
     latf(1:ny) = latitudes
-    do j=1, n
+    do j=1, nh+1
       latf(1-j)   = 0.5_dp*pi + (0.5_dp*pi - latitudes(j))
       latf(ny+j)   = -0.5_dp*pi + (-0.5_dp*pi - latitudes(ny-j+1))
     end do
@@ -167,15 +168,14 @@ contains
     real(kind=dp), intent(out) :: fi
     logical, optional, intent(in) :: monotonic
 
+    integer(kind=i4b) :: i1, i2, j1, j2
     real(kind=dp) :: dfi
 
-    integer(kind=i4b) :: i1, i2, j1, j2
-
     call find_stencil(lon, lat)
-    i1 = is(1) - (n-2)
-    i2 = is(1) + (n-1)
-    j1 = js(1) - (n-2)
-    j2 = js(1) + (n-1)
+    i1 = is(1) - nh
+    i2 = is(1) + nh + 1
+    j1 = js(1) - nh
+    j2 = js(1) + nh + 1
     call polin2(lonf(i1:i2), latf(j1:j2), ff(i1:i2,j1:j2), lon, lat, fi, dfi)
 
 ! Bermijo and Staniforth 1992
@@ -186,6 +186,34 @@ contains
 
   end subroutine interpolate_polin2
 
+!  subroutine interpolate_linpol(lon, lat, fi, monotonic)
+!    use polint_module, only : polint
+!    implicit none
+!
+!    real(kind=dp), intent(in) :: lon, lat
+!    real(kind=dp), intent(out) :: fi
+!    logical, optional, intent(in) :: monotonic
+!
+!    integer(kind=i4b) :: i1, i2, j1, j2, j
+!    real(kind=dp) :: dfi
+!    real(kind=dp), dimension(n-1) :: ytmp
+!
+!    call find_stencil(lon, lat)
+!    i1 = is(1) - (n-2)
+!    i2 = is(1) + (n-1)
+!    j1 = js(1) - (n-2)
+!    j2 = js(1) + (n-1)
+!    do j =
+!    call polin2(lonf(i1:i2), latf(j1:j2), ff(i1:i2,j1:j2), lon, lat, fi, dfi)
+!
+!! Bermijo and Staniforth 1992
+!    if (present(monotonic).and.(monotonic)) then
+!      fi = min(fi,maxval(ff(i1:i2,j1:j2)))
+!      fi = max(fi,minval(ff(i1:i2,j1:j2)))
+!    end if
+!
+!  end subroutine interpolate_linpol
+
   subroutine interpolate_set(f)
     implicit none
 
@@ -194,13 +222,13 @@ contains
     integer(kind=i4b) :: i, j
 
     ff(1:nx,1:ny) = f
-    do i=1, n-2
+    do i=1, nh
       ff(1-i,1:ny) = f(nx-(i-1),:)
     end do
-    do i=1, n-1
+    do i=1, nh+1
       ff(nx+i,1:ny) = f(1+(i-1),:)
     end do
-    do j=1, n-1
+    do j=1, nh+1
       ff(:,1-j) = cshift(ff(:,j),nx/2)
       ff(:,ny+j) = cshift(ff(:,ny-(j-1)),nx/2)
     end do
@@ -216,16 +244,16 @@ contains
 
     fu(1:nx,1:ny) = gu
     fv(1:nx,1:ny) = gv
-    do i=1, n-2
+    do i=1, nh
       fu(1-i,1:ny) = gu(nx-(i-1),:)
       fv(1-i,1:ny) = gv(nx-(i-1),:)
     end do
-    do i=1, n-1
+    do i=1, nh+1
       fu(nx+i,1:ny) = gu(1+(i-1),:)
       fv(nx+i,1:ny) = gv(1+(i-1),:)
     end do
 ! direction of u, v is reversed beyond poles
-    do j=1, n-1
+    do j=1, nh+1
       fu(:,1-j) = -cshift(fu(:,j),nx/2)
       fu(:,ny+j) = -cshift(fu(:,ny-(j-1)),nx/2)
       fv(:,1-j) = -cshift(fv(:,j),nx/2)
@@ -244,18 +272,18 @@ contains
     ffx(1:nx,1:ny) = fx
     ffy(1:nx,1:ny) = fy
     ffxy(1:nx,1:ny) = fxy
-    do i=1, n-2
+    do i=1, nh
       ffx(1-i,1:ny) = fx(nx-(i-1),:)
       ffy(1-i,1:ny) = fy(nx-(i-1),:)
       ffxy(1-i,1:ny) = fxy(nx-(i-1),:)
     end do
-    do i=1, n-1
+    do i=1, nh+1
       ffx(nx+i,1:ny) = fx(1+(i-1),:)
       ffy(nx+i,1:ny) = fy(1+(i-1),:)
       ffxy(nx+i,1:ny) = fxy(1+(i-1),:)
     end do
 ! direction of d/dx and d/dy is reversed beyond poles
-    do j=1, n-1
+    do j=1, nh+1
       ffx(:,1-j) = -cshift(ffx(:,j),nx/2)
       ffx(:,ny+j) = -cshift(ffx(:,ny-(j-1)),nx/2)
       ffy(:,1-j) = -cshift(ffy(:,j),nx/2)
