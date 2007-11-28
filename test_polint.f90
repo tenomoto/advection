@@ -12,7 +12,7 @@ program test_polint
   do i=1, n
     xa(i) = dx * (i-1)
     ya(i) = sin(xa(i))
-    print *, xa(i), ya(i)
+    print *, i, xa(i), ya(i)
   end do
 
   ddx = dx/(m-1.d0)

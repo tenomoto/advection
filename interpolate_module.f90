@@ -27,7 +27,8 @@ module interpolate_module
   public :: interpolate_init, interpolate_clean, &
             interpolate_set, interpolate_setuv, interpolate_setd, &
             interpolate_bilinear, interpolate_bilinearuv, &
-            interpolate_bicubic, interpolate_polin2, interpolate_linpol
+            interpolate_bicubic, interpolate_polin2, interpolate_linpol, &
+            interpolate_setdx, interpolate_spcher
 
 contains
 
@@ -152,7 +153,7 @@ contains
 !      fi = bcuintp(t,u)
 !    end if
 
-! Bermijo and Staniforth 1992
+! Bermejo and Staniforth 1992
     if (present(monotonic).and.(monotonic)) then
       fi = min(fi,maxval(z))
       fi = max(fi,minval(z))
@@ -180,7 +181,7 @@ contains
     j2 = j0 + nh + 1
     call polin2(lonf(i1:i2), latf(j1:j2), ff(i1:i2,j1:j2), lon, lat, fi, dfi)
 
-! Bermijo and Staniforth 1992
+! Bermejo and Staniforth 1992
     if (present(monotonic).and.(monotonic)) then
       fi = min(fi,maxval(ff(i0:i0+1,j0:j0+1)))
       fi = max(fi,minval(ff(i0:i0+1,j0:j0+1)))
@@ -196,14 +197,12 @@ contains
     real(kind=dp), intent(out) :: fi
     logical, optional, intent(in) :: monotonic
 
-    integer(kind=i4b) :: i0, i1, i2, j0, j1, j2, j
+    integer(kind=i4b) :: i0, j0, j1, j2, j
     real(kind=dp) :: dfi
     real(kind=dp), dimension(n+1) :: ytmp
 
     call find_stencil(lon, lat)
     i0 = is(1)
-    i1 = i0 - nh
-    i2 = i0 + nh + 1
     j0 = js(1)
     j1 = j0 - nh
     j2 = j0 + nh + 1
@@ -212,13 +211,49 @@ contains
     end do
     call polint(latf(j1:j2), ytmp, lat, fi, dfi)
 
-! Bermijo and Staniforth 1992
+! Bermejo and Staniforth 1992
     if (present(monotonic).and.(monotonic)) then
       fi = min(fi,maxval(ff(i0:i0+1,j0:j0+1)))
       fi = max(fi,minval(ff(i0:i0+1,j0:j0+1)))
     end if
 
   end subroutine interpolate_linpol
+
+  subroutine interpolate_spcher(lon, lat, fi, monotonic)
+    use cubicspline_module, only : cubicspline_interpolate
+    use polint_module, only : polint
+    implicit none
+
+    real(kind=dp), intent(in) :: lon, lat
+    real(kind=dp), intent(out) :: fi
+    logical, optional, intent(in) :: monotonic
+
+    integer(kind=i4b) :: i0, j0, j1, j2, j
+    real(kind=dp) :: dfi
+    real(kind=dp), dimension(4) :: fs
+    real(kind=dp), dimension(n+1) :: ytmp
+
+    call find_stencil(lon, lat)
+    i0 = is(1)
+    j0 = js(1)
+    j1 = j0 - nh
+    j2 = j0 + nh + 1
+    do j=j1, j2
+      fs(1) = ff(i0,j)
+      fs(2) = ff(i0+1,j)
+      fs(3) = ffx(i0,j)
+      fs(4) = ffx(i0+1,j)
+      call cubicspline_interpolate(t, fs, ytmp(j-j1+1))
+    end do
+    call polint(latf(j1:j2), ytmp, lat, fi, dfi)
+
+! Bermejo and Staniforth 1992
+    if (present(monotonic).and.(monotonic)) then
+      fi = min(fi,maxval(ff(i0:i0+1,j0:j0+1)))
+      fi = max(fi,minval(ff(i0:i0+1,j0:j0+1)))
+    end if
+
+  end subroutine interpolate_spcher
 
   subroutine interpolate_set(f)
     implicit none
@@ -288,7 +323,7 @@ contains
       ffy(nx+i,1:ny) = fy(1+(i-1),:)
       ffxy(nx+i,1:ny) = fxy(1+(i-1),:)
     end do
-! direction of d/dx and d/dy is reversed beyond poles
+! directions of d/dx and d/dy are reversed beyond poles
     do j=1, nh+1
       ffx(:,1-j) = -cshift(ffx(:,j),nx/2)
       ffx(:,ny+j) = -cshift(ffx(:,ny-(j-1)),nx/2)
@@ -299,6 +334,30 @@ contains
     end do
 
   end subroutine interpolate_setd
+
+  subroutine interpolate_setdx(fx)
+    implicit none
+
+    real(kind=dp), dimension(:,:), intent(in) :: fx
+
+    integer(kind=i4b) :: i, j
+
+    ffx(1:nx,1:ny) = fx
+    do i=1, nh
+      ffx(1-i,1:ny) = fx(nx-(i-1),:)
+    end do
+    do i=1, nh+1
+      ffx(nx+i,1:ny) = fx(1+(i-1),:)
+    end do
+! direction of d/dx is reversed beyond poles
+    do j=1, nh+1
+      ffx(:,1-j) = -cshift(ffx(:,j),nx/2)
+      ffx(:,ny+j) = -cshift(ffx(:,ny-(j-1)),nx/2)
+    end do
+    ffy(:,:) = 0.d0
+    ffxy(:,:) = 0.d0
+
+  end subroutine interpolate_setdx
 
   subroutine find_stencil(lon, lat)
     implicit none

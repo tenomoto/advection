@@ -10,7 +10,8 @@ module semilag_module
   use interpolate_module, only: interpolate_init, interpolate_clean, &
                           interpolate_set, interpolate_setd, &
                           interpolate_bilinear, interpolate_bicubic, &
-                          interpolate_polin2, interpolate_linpol
+                          interpolate_polin2, interpolate_linpol, &
+                          interpolate_setdx, interpolate_spcher
   use io_module, only: save_data
   private
   
@@ -93,7 +94,7 @@ contains
       if (mod(i,hstep)==0) then
         print *, "Saving step=", i
 ! comment below in grid model
-!        call legendre_synthesis(sphi, gphi)
+        call legendre_synthesis(sphi, gphi)
         call save_data(hfile, 3*nsave+1, gphi, "old")
         call save_data(hfile, 3*nsave+2, gu, "old")
         call save_data(hfile, 3*nsave+3, gv, "old")
@@ -111,11 +112,11 @@ contains
     real(kind=dp), dimension(nlon) :: gphitmp
 
 ! comment below in grid model
-!    call legendre_synthesis(sphi_old,gphi_old)
+    call legendre_synthesis(sphi_old,gphi_old)
 
 ! calculate spectral derivatives
 
-!    call legendre_synthesis_dlon(sphi_old,gphix)
+    call legendre_synthesis_dlon(sphi_old,gphix)
 !    call legendre_synthesis_dlat(sphi_old,gphiy)
 !    call legendre_synthesis_dlonlat(sphi_old,gphixy)
 !    do j=1, nlat
@@ -125,51 +126,58 @@ contains
 
 ! calculate fd derivatives
 
-!    dlonr = 0.5_dp*nlon/pi
+! d/dlon
+!    dlonr = 0.25_dp*nlon/pi
 !    gphix(1,:) = dlonr * (gphi_old(2,:) - gphi_old(nlon,:))
 !    gphix(nlon,:) = dlonr * (gphi_old(1,:) - gphi_old(nlon-1,:))
 !    do i=2, nlon-1
 !      gphix(i,:) = dlonr*(gphi_old(i+1,:) - gphi_old(i-1,:))
 !    end do
-!    eps = 0.5_dp*pi-latitudes(1)
-!    gphitmp = cshift(gphi_old(:,1),nlon/2)
-!    gphiy(:,1) = (gphitmp-gphi_old(:,2))/(0.5_dp*pi+eps-latitudes(2))
-!    gphitmp = cshift(gphix(:,1),nlon/2)
-!    gphixy(:,1) = (gphitmp-gphix(:,2))/(0.5_dp*pi+eps-latitudes(2))
-!    gphixy(:,1) = (gphix(:,1)-gphix(:,2))/(latitudes(1)-latitudes(2))
-!    gphitmp = cshift(gphi_old(:,nlat),nlon/2)
-!    gphiy(:,nlat) = (gphitmp-gphi_old(:,nlat-1))/(-0.5_dp*pi-eps-latitudes(nlat-1))
-!    gphitmp = cshift(gphix(:,nlat),nlon/2)
-!    gphixy(:,nlat) = (gphitmp-gphix(:,nlat-1))/(-0.5_dp*pi-eps-latitudes(nlat-1))
-!    do j=2, nlat-1
-!      gphiy(:,j) = (gphi_old(:,j+1)-gphi_old(:,j-1))/(latitudes(j+1)-latitudes(j-1))
-!      gphixy(:,j) = (gphix(:,j+1)-gphix(:,j-1))/(latitudes(j+1)-latitudes(j-1))
-!    end do 
+! d/dphi
+    eps = 0.5_dp*pi-latitudes(1)
+    gphitmp = cshift(gphi_old(:,1),nlon/2)
+    gphiy(:,1) = (gphitmp-gphi_old(:,2))/(0.5_dp*pi+eps-latitudes(2))
+    gphitmp = cshift(gphix(:,1),nlon/2)
+    gphixy(:,1) = (gphitmp-gphix(:,2))/(0.5_dp*pi+eps-latitudes(2))
+    gphitmp = cshift(gphi_old(:,nlat),nlon/2)
+    gphiy(:,nlat) = (gphitmp-gphi_old(:,nlat-1))/(-0.5_dp*pi-eps-latitudes(nlat-1))
+    gphitmp = cshift(gphix(:,nlat),nlon/2)
+    gphixy(:,nlat) = (gphitmp-gphix(:,nlat-1))/(-0.5_dp*pi-eps-latitudes(nlat-1))
+    do j=2, nlat-1
+      gphiy(:,j) = (gphi_old(:,j+1)-gphi_old(:,j-1))/(latitudes(j+1)-latitudes(j-1))
+      gphixy(:,j) = (gphix(:,j+1)-gphix(:,j-1))/(latitudes(j+1)-latitudes(j-1))
+    end do 
+
+! set grids
     call interpolate_set(gphi_old)
-!    call interpolate_setd(gphix, gphiy, gphixy)
+!    call interpolate_setdx(gphix)
+    call interpolate_setd(gphix, gphiy, gphixy)
     do j=1, nlat
       do i=1, nlon
 !        call interpolate_bilinear(deplon(i,j), deplat(i,j), gphi1(i,j))
-!         call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j))
+         call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j))
 !         call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
 !        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j))
 !        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
-        call interpolate_linpol(deplon(i,j), deplat(i,j), gphi1(i,j))
+!        call interpolate_linpol(deplon(i,j), deplat(i,j), gphi1(i,j))
 !        call interpolate_linpol(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
+! spectral derivative in x, cubic Hermite in y does not work...
+!         call interpolate_spcher(deplon(i,j), deplat(i,j), gphi1(i,j))
+!         call interpolate_spcher(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
       end do
     end do
 
 ! time filter
 ! spectral
-!    call legendre_analysis(gphi1, sphi1)
-!    do m=0, ntrunc
-!        sphi_old(m:ntrunc,m) = sphi(m:ntrunc,m) + &
-!          time_filter_param * (sphi_old(m:ntrunc,m)-2.0_dp*sphi(m:ntrunc,m)+sphi1(m:ntrunc,m))
-!    end do
-!    sphi = sphi1
+    call legendre_analysis(gphi1, sphi1)
+    do m=0, ntrunc
+        sphi_old(m:ntrunc,m) = sphi(m:ntrunc,m) + &
+          time_filter_param * (sphi_old(m:ntrunc,m)-2.0_dp*sphi(m:ntrunc,m)+sphi1(m:ntrunc,m))
+    end do
+    sphi = sphi1
 ! grid
-    gphi_old = gphi + time_filter_param * (gphi_old-2.0_dp*gphi+gphi1)
-    gphi = gphi1
+!    gphi_old = gphi + time_filter_param * (gphi_old-2.0_dp*gphi+gphi1)
+!    gphi = gphi1
 
   end subroutine update
 
