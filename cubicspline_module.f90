@@ -29,17 +29,17 @@ module cubicspline_module
 
 contains
 
-  subroutine cubicspline_interpolate(t, f, fi, method)
+  subroutine cubicspline_interpolate(t, dx, f, fi, method)
     implicit none
 
     integer(kind=i4b), parameter :: n = 4
 
-    real(kind=dp), intent(in) :: t
+    real(kind=dp), intent(in) :: t, dx
     real(kind=dp), dimension(n), intent(in) :: f ! f1, f2, df1, df2
     real(kind=dp), intent(out) :: fi
     integer(kind=i4b), optional, intent(in) :: method
 
-    real(kind=dp), dimension(n) :: tt, c
+    real(kind=dp), dimension(n) :: tt, c, ff
     integer(kind=i4b) :: i
 
     if (present(method)) then
@@ -50,7 +50,9 @@ contains
     do i=1, n
       c(i) = sum(tt*coeff(i,:,m))
     end do
-    fi = sum(c*f)
+		ff(1:2) = f(1:2)
+    ff(3:4) = f(3:4)*dx
+    fi = sum(c*ff)
     
   end subroutine cubicspline_interpolate
 

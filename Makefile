@@ -2,7 +2,7 @@
 .SUFFIXES : .f90 .o
 
 FC = g95
-FFLAGS = -O3 -I/usr/local/include 
+FFLAGS = -O2 -I/usr/local/include 
 LD = f90
 LDFLAGS = -flat_namespace -undefined suppress -L/usr/local/lib
 LDLIBS = -lfftw3

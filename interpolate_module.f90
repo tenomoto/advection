@@ -243,7 +243,7 @@ contains
       fs(2) = ff(i0+1,j)
       fs(3) = ffx(i0,j)
       fs(4) = ffx(i0+1,j)
-      call cubicspline_interpolate(t, fs, ytmp(j-j1+1))
+      call cubicspline_interpolate(t, dlon, fs, ytmp(j-j1+1))
     end do
     call polint(latf(j1:j2), ytmp, lat, fi, dfi)
 

@@ -22,6 +22,11 @@ module semilag_module
   complex(kind=dp), dimension(:,:), allocatable, private :: sphi1
   character(len=*), parameter, private :: hfile = "history.dat"
 
+  character(len=6), dimension(7), parameter, private :: methods = &
+    (/"bilin ", "polin2", "linpol", "fd    ", "sph   ", "fdy   ", "spcher"/)
+  character(len=6), private :: imethod = "bilin "
+  logical, private :: spectral = .true., fmono = .false.
+
   private :: update
   public :: semilag_init, semilag_timeint, semilag_clean
 
@@ -31,6 +36,21 @@ contains
     implicit none
 
     integer(kind=i4b) :: i,j
+
+!   read additional options
+    print *, "Spectral time steppings?"
+    read *, spectral
+    print *, "spectral=", spectral
+    print *, "Enter interpolation method (6 letters):"
+    print *, methods
+    read *, imethod
+    print *, imethod
+    print *, "Enter order (odd number>3):"
+    read *, n 
+    print *, "n=", n
+    print *, "Force monotonicity?"
+    read *, fmono
+    print *, "monotonic=", fmono
 
     allocate(sphi1(0:ntrunc,0:ntrunc),gu(nlon,nlat),gv(nlon,nlat), &
              gphi_old(nlon,nlat),gphi(nlon,nlat),gphi1(nlon,nlat), &
@@ -93,8 +113,9 @@ contains
       call update()
       if (mod(i,hstep)==0) then
         print *, "Saving step=", i
-! comment below in grid model
-        call legendre_synthesis(sphi, gphi)
+        if (spectral) then
+          call legendre_synthesis(sphi, gphi)
+        end if
         call save_data(hfile, 3*nsave+1, gphi, "old")
         call save_data(hfile, 3*nsave+2, gu, "old")
         call save_data(hfile, 3*nsave+3, gv, "old")
@@ -111,73 +132,89 @@ contains
     real(kind=dp) :: eps, dlonr
     real(kind=dp), dimension(nlon) :: gphitmp
 
-! comment below in grid model
-    call legendre_synthesis(sphi_old,gphi_old)
+    if (spectral) then
+      call legendre_synthesis(sphi_old,gphi_old)
+    end if
 
 ! calculate spectral derivatives
 
     call legendre_synthesis_dlon(sphi_old,gphix)
-!    call legendre_synthesis_dlat(sphi_old,gphiy)
-!    call legendre_synthesis_dlonlat(sphi_old,gphixy)
-!    do j=1, nlat
-!      gphiy(:,j) = gphiy(:,j)/cos(latitudes(j))
-!      gphixy(:,j) = gphixy(:,j)/cos(latitudes(j))
-!    end do
+    if (imethod=="sph   ") then
+      call legendre_synthesis_dlat(sphi_old,gphiy)
+      call legendre_synthesis_dlonlat(sphi_old,gphixy)
+      do j=1, nlat
+        gphiy(:,j) = gphiy(:,j)/cos(latitudes(j))
+        gphixy(:,j) = gphixy(:,j)/cos(latitudes(j))
+      end do
+    end if
 
 ! calculate fd derivatives
 
+    if (imethod=="fd    ") then
 ! d/dlon
-!    dlonr = 0.25_dp*nlon/pi
-!    gphix(1,:) = dlonr * (gphi_old(2,:) - gphi_old(nlon,:))
-!    gphix(nlon,:) = dlonr * (gphi_old(1,:) - gphi_old(nlon-1,:))
-!    do i=2, nlon-1
-!      gphix(i,:) = dlonr*(gphi_old(i+1,:) - gphi_old(i-1,:))
-!    end do
+      dlonr = 0.25_dp*nlon/pi
+      gphix(1,:) = dlonr * (gphi_old(2,:) - gphi_old(nlon,:))
+      gphix(nlon,:) = dlonr * (gphi_old(1,:) - gphi_old(nlon-1,:))
+      do i=2, nlon-1
+        gphix(i,:) = dlonr*(gphi_old(i+1,:) - gphi_old(i-1,:))
+      end do
+    end if
+    if ((imethod=="fd    ").or.(imethod=="fdy   ")) then
 ! d/dphi
-    eps = 0.5_dp*pi-latitudes(1)
-    gphitmp = cshift(gphi_old(:,1),nlon/2)
-    gphiy(:,1) = (gphitmp-gphi_old(:,2))/(0.5_dp*pi+eps-latitudes(2))
-    gphitmp = cshift(gphix(:,1),nlon/2)
-    gphixy(:,1) = (gphitmp-gphix(:,2))/(0.5_dp*pi+eps-latitudes(2))
-    gphitmp = cshift(gphi_old(:,nlat),nlon/2)
-    gphiy(:,nlat) = (gphitmp-gphi_old(:,nlat-1))/(-0.5_dp*pi-eps-latitudes(nlat-1))
-    gphitmp = cshift(gphix(:,nlat),nlon/2)
-    gphixy(:,nlat) = (gphitmp-gphix(:,nlat-1))/(-0.5_dp*pi-eps-latitudes(nlat-1))
-    do j=2, nlat-1
-      gphiy(:,j) = (gphi_old(:,j+1)-gphi_old(:,j-1))/(latitudes(j+1)-latitudes(j-1))
-      gphixy(:,j) = (gphix(:,j+1)-gphix(:,j-1))/(latitudes(j+1)-latitudes(j-1))
-    end do 
+      eps = 0.5_dp*pi-latitudes(1)
+      gphitmp = cshift(gphi_old(:,1),nlon/2)
+      gphiy(:,1) = (gphitmp-gphi_old(:,2))/(0.5_dp*pi+eps-latitudes(2))
+      gphitmp = cshift(gphix(:,1),nlon/2)
+      gphixy(:,1) = (gphitmp-gphix(:,2))/(0.5_dp*pi+eps-latitudes(2))
+      gphitmp = cshift(gphi_old(:,nlat),nlon/2)
+      gphiy(:,nlat) = (gphitmp-gphi_old(:,nlat-1))/(-0.5_dp*pi-eps-latitudes(nlat-1))
+      gphitmp = cshift(gphix(:,nlat),nlon/2)
+      gphixy(:,nlat) = (gphitmp-gphix(:,nlat-1))/(-0.5_dp*pi-eps-latitudes(nlat-1))
+      do j=2, nlat-1
+        gphiy(:,j) = (gphi_old(:,j+1)-gphi_old(:,j-1))/(latitudes(j+1)-latitudes(j-1))
+        gphixy(:,j) = (gphix(:,j+1)-gphix(:,j-1))/(latitudes(j+1)-latitudes(j-1))
+      end do 
+    end if
 
 ! set grids
     call interpolate_set(gphi_old)
-!    call interpolate_setdx(gphix)
-    call interpolate_setd(gphix, gphiy, gphixy)
+    if ((imethod=="spcher").or.(imethod=="fdy   ")) then
+      call interpolate_setdx(gphix)
+    end if
+    if ((imethod=="fd    ").or.(imethod=="spcher")) then
+      call interpolate_setd(gphix, gphiy, gphixy)
+    end if
     do j=1, nlat
       do i=1, nlon
-!        call interpolate_bilinear(deplon(i,j), deplat(i,j), gphi1(i,j))
-         call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j))
-!         call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
-!        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j))
-!        call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
-!        call interpolate_linpol(deplon(i,j), deplat(i,j), gphi1(i,j))
-!        call interpolate_linpol(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
-! spectral derivative in x, cubic Hermite in y does not work...
-!         call interpolate_spcher(deplon(i,j), deplat(i,j), gphi1(i,j))
-!         call interpolate_spcher(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=.true.)
+        select case (imethod)
+          case ("bilin ") ! monotonicity is guranteed
+            call interpolate_bilinear(deplon(i,j), deplat(i,j), gphi1(i,j))
+          case ("fd    ", "sph   ", "fdy   ")
+            call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=fmono)
+          case ("polin2")
+            call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=fmono)
+          case ("linpol")
+            call interpolate_linpol(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=fmono)
+          case ("spcher")
+            call interpolate_spcher(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=fmono)
+        end select
       end do
     end do
 
 ! time filter
 ! spectral
-    call legendre_analysis(gphi1, sphi1)
-    do m=0, ntrunc
-        sphi_old(m:ntrunc,m) = sphi(m:ntrunc,m) + &
-          time_filter_param * (sphi_old(m:ntrunc,m)-2.0_dp*sphi(m:ntrunc,m)+sphi1(m:ntrunc,m))
-    end do
-    sphi = sphi1
+    if (spectral) then
+      call legendre_analysis(gphi1, sphi1)
+      do m=0, ntrunc
+          sphi_old(m:ntrunc,m) = sphi(m:ntrunc,m) + &
+            time_filter_param * (sphi_old(m:ntrunc,m)-2.0_dp*sphi(m:ntrunc,m)+sphi1(m:ntrunc,m))
+      end do
+      sphi = sphi1
+    else
 ! grid
-!    gphi_old = gphi + time_filter_param * (gphi_old-2.0_dp*gphi+gphi1)
-!    gphi = gphi1
+      gphi_old = gphi + time_filter_param * (gphi_old-2.0_dp*gphi+gphi1)
+      gphi = gphi1
+    end if
 
   end subroutine update
 
