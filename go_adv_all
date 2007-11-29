@@ -11,6 +11,6 @@ ${imethod}
 3
 .false.
 EOF
-mv history.dat history_${imethod}.dat
+mv history.dat history_L2500km_${imethod}.dat
 done
 
