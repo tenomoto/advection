@@ -1,8 +1,13 @@
 #!/bin/sh
+imethod=$1
 ./adv << EOF > adv.log 2>&1
 39
 80
 21600
 4
+.true.
+${imethod}
+3
+.false.
 EOF
 

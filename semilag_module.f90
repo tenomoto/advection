@@ -138,7 +138,9 @@ contains
 
 ! calculate spectral derivatives
 
-    call legendre_synthesis_dlon(sphi_old,gphix)
+    if ((imethod=="sph   ").or.(imethod=="fdy   ").or.(imethod=="spcher")) then
+      call legendre_synthesis_dlon(sphi_old,gphix)
+    end if
     if (imethod=="sph   ") then
       call legendre_synthesis_dlat(sphi_old,gphiy)
       call legendre_synthesis_dlonlat(sphi_old,gphixy)
@@ -178,10 +180,11 @@ contains
 
 ! set grids
     call interpolate_set(gphi_old)
-    if ((imethod=="spcher").or.(imethod=="fdy   ")) then
+    if (imethod=="spcher") then
       call interpolate_setdx(gphix)
     end if
-    if ((imethod=="fd    ").or.(imethod=="spcher")) then
+    if ((imethod=="fd    ").or.(imethod=="sph   ").or. &
+        (imethod=="spcher").or.(imethod=="fdy   ")) then
       call interpolate_setd(gphix, gphiy, gphixy)
     end if
     do j=1, nlat
