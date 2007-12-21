@@ -197,16 +197,24 @@ contains
     real(kind=dp), intent(out) :: fi
     logical, optional, intent(in) :: monotonic
 
-    integer(kind=i4b) :: i0, j0, j1, j2, j
+    integer(kind=i4b) :: i0, i1, i2, j0, j1, j2, j
     real(kind=dp) :: dfi
     real(kind=dp), dimension(n+1) :: ytmp
 
     call find_stencil(lon, lat)
     i0 = is(1)
     j0 = js(1)
+    i1 = i0 - nh
+    i2 = i0 + nh + 1
     j1 = j0 - nh
     j2 = j0 + nh + 1
-    do j=j1, j2
+    do j=j1, j0-1
+      ytmp(j-j1+1) =  (1.0_dp-t)*ff(i0,j)+t*ff(i0+1,j)
+    end do
+    do j=j0, j0+1
+    	call polint(lonf(i1:i2), ff(i1:i2,j), lon, ytmp(j-j1+1), dfi)
+    end do
+    do j=j0+2, j2
       ytmp(j-j1+1) =  (1.0_dp-t)*ff(i0,j)+t*ff(i0+1,j)
     end do
     call polint(latf(j1:j2), ytmp, lat, fi, dfi)

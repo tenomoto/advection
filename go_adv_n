@@ -1,0 +1,17 @@
+#!/bin/sh
+imethod=$1
+for n in 5 7 9; do
+echo n=${n}
+./adv << EOF > adv.log 2>&1
+39
+80
+21600
+4
+.true.
+"${imethod}"
+${n}
+.false.
+EOF
+mv history.dat history_L2500km_${imethod}_${n}.dat
+done
+

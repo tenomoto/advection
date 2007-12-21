@@ -1,0 +1,16 @@
+#!/bin/sh
+for imethod in polin2 linpol fd; do
+echo $imethod
+./adv << EOF > adv.log 2>&1
+39
+80
+21600
+4
+.false.
+${imethod}
+3
+.true.
+EOF
+mv history.dat history_L2500km_${imethod}limg.dat
+done
+
