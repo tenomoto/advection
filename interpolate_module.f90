@@ -271,15 +271,15 @@ contains
     integer(kind=i4b) :: i, j
 
     ff(1:nx,1:ny) = f
+    do j=1, nh+1
+      ff(1:nx,1-j) = cshift(ff(1:nx,j),nx/2)
+      ff(1:nx,ny+j) = cshift(ff(1:nx,ny-(j-1)),nx/2)
+    end do
     do i=1, nh
-      ff(1-i,1:ny) = f(nx-(i-1),:)
+      ff(1-i,:) = ff(nx-(i-1),:)
     end do
     do i=1, nh+1
-      ff(nx+i,1:ny) = f(1+(i-1),:)
-    end do
-    do j=1, nh+1
-      ff(:,1-j) = cshift(ff(:,j),nx/2)
-      ff(:,ny+j) = cshift(ff(:,ny-(j-1)),nx/2)
+      ff(nx+i,:) = ff(1+(i-1),:)
     end do
 
   end subroutine interpolate_set
@@ -293,20 +293,20 @@ contains
 
     fu(1:nx,1:ny) = gu
     fv(1:nx,1:ny) = gv
-    do i=1, nh
-      fu(1-i,1:ny) = gu(nx-(i-1),:)
-      fv(1-i,1:ny) = gv(nx-(i-1),:)
-    end do
-    do i=1, nh+1
-      fu(nx+i,1:ny) = gu(1+(i-1),:)
-      fv(nx+i,1:ny) = gv(1+(i-1),:)
-    end do
 ! direction of u, v is reversed beyond poles
     do j=1, nh+1
-      fu(:,1-j) = -cshift(fu(:,j),nx/2)
-      fu(:,ny+j) = -cshift(fu(:,ny-(j-1)),nx/2)
-      fv(:,1-j) = -cshift(fv(:,j),nx/2)
-      fv(:,ny+j) = -cshift(fv(:,ny-(j-1)),nx/2)
+      fu(1:nx,1-j) = -cshift(fu(1:nx,j),nx/2)
+      fu(1:nx,ny+j) = -cshift(fu(1:nx,ny-(j-1)),nx/2)
+      fv(1:nx,1-j) = -cshift(fv(1:nx,j),nx/2)
+      fv(1:nx,ny+j) = -cshift(fv(1:nx,ny-(j-1)),nx/2)
+    end do
+    do i=1, nh
+      fu(1-i,:) = fu(nx-(i-1),:)
+      fv(1-i,:) = fv(nx-(i-1),:)
+    end do
+    do i=1, nh+1
+      fu(nx+i,:) = fu(1+(i-1),:)
+      fv(nx+i,:) = fv(1+(i-1),:)
     end do
 
   end subroutine interpolate_setuv
@@ -321,24 +321,24 @@ contains
     ffx(1:nx,1:ny) = fx
     ffy(1:nx,1:ny) = fy
     ffxy(1:nx,1:ny) = fxy
-    do i=1, nh
-      ffx(1-i,1:ny) = fx(nx-(i-1),:)
-      ffy(1-i,1:ny) = fy(nx-(i-1),:)
-      ffxy(1-i,1:ny) = fxy(nx-(i-1),:)
-    end do
-    do i=1, nh+1
-      ffx(nx+i,1:ny) = fx(1+(i-1),:)
-      ffy(nx+i,1:ny) = fy(1+(i-1),:)
-      ffxy(nx+i,1:ny) = fxy(1+(i-1),:)
-    end do
 ! directions of d/dx and d/dy are reversed beyond poles
     do j=1, nh+1
-      ffx(:,1-j) = -cshift(ffx(:,j),nx/2)
-      ffx(:,ny+j) = -cshift(ffx(:,ny-(j-1)),nx/2)
-      ffy(:,1-j) = -cshift(ffy(:,j),nx/2)
-      ffy(:,ny+j) = -cshift(ffy(:,ny-(j-1)),nx/2)
-      ffxy(:,1-j) = cshift(ffxy(:,j),nx/2)
-      ffxy(:,ny+j) = cshift(ffxy(:,ny-(j-1)),nx/2)
+      ffx(1:nx,1-j) = -cshift(ffx(1:nx,j),nx/2)
+      ffx(1:nx,ny+j) = -cshift(ffx(1:nx,ny-(j-1)),nx/2)
+      ffy(1:nx,1-j) = -cshift(ffy(1:nx,j),nx/2)
+      ffy(1:nx,ny+j) = -cshift(ffy(1:nx,ny-(j-1)),nx/2)
+      ffxy(1:nx,1-j) = cshift(ffxy(1:nx,j),nx/2)
+      ffxy(1:nx,ny+j) = cshift(ffxy(1:nx,ny-(j-1)),nx/2)
+    end do
+    do i=1, nh
+      ffx(1-i,:) = ffx(nx-(i-1),:)
+      ffy(1-i,:) = ffy(nx-(i-1),:)
+      ffxy(1-i,:) = ffxy(nx-(i-1),:)
+    end do
+    do i=1, nh+1
+      ffx(nx+i,:) = ffx(1+(i-1),:)
+      ffy(nx+i,:) = ffy(1+(i-1),:)
+      ffxy(nx+i,:) = ffxy(1+(i-1),:)
     end do
 
   end subroutine interpolate_setd
@@ -351,16 +351,16 @@ contains
     integer(kind=i4b) :: i, j
 
     ffx(1:nx,1:ny) = fx
-    do i=1, nh
-      ffx(1-i,1:ny) = fx(nx-(i-1),:)
-    end do
-    do i=1, nh+1
-      ffx(nx+i,1:ny) = fx(1+(i-1),:)
-    end do
 ! direction of d/dx is reversed beyond poles
     do j=1, nh+1
-      ffx(:,1-j) = -cshift(ffx(:,j),nx/2)
-      ffx(:,ny+j) = -cshift(ffx(:,ny-(j-1)),nx/2)
+      ffx(1:nx,1-j) = -cshift(ffx(1:nx,j),nx/2)
+      ffx(1:nx,ny+j) = -cshift(ffx(1:nx,ny-(j-1)),nx/2)
+    end do
+    do i=1, nh
+      ffx(1-i,:) = fx(nx-(i-1),:)
+    end do
+    do i=1, nh+1
+      ffx(nx+i,:) = fx(1+(i-1),:)
     end do
     ffy(:,:) = 0.d0
     ffxy(:,:) = 0.d0

@@ -19,13 +19,15 @@ begin
 	lat@units = "degrees_north"
 	gwgt = doubletofloat(gau_info(ny-1:0,1))
 
-	fname = dir(0)+"/"+"history_L"+run(0)+".dat"
+;	fname = dir(0)+"/"+"history_L"+run(0)+".dat"
+	fname = "../run/"+dir(0)+"/"+"history_L"+run(0)+".dat"
 	buf0 = fbindirread(fname, 0, (/ny, nx/), "double")
-	print(fname+" min="+min(buf0)+" max="+max(buf0))
+;	print(fname+" min="+min(buf0)+" max="+max(buf0))
  	x0 = wgt_areaave(buf0, gwgt, 1., 0)
 
-	do i=1, n-1
-	  fname = dir(i)+"/"+"history_L"+run(i)+".dat"
+;	do i=1, n-1
+;	  fname = dir(i)+"/"+"history_L"+run(i)+".dat"
+	  fname = "history.dat"
 		buf = fbindirread(fname, 3*nt, (/ny, nx/), "double")
  		x = wgt_areaave(buf-buf0, gwgt, 1., 0)
   	print(fname+" min="+min(buf)+" max="+max(buf))
@@ -33,5 +35,5 @@ begin
  		dp = wgt_areaave((buf-buf0)>0, gwgt, 1., 0)/x0*100.
  		dn = wgt_areaave((buf-buf0)<0, gwgt, 1., 0)/x0*100.
 		print("diff total="+d+" diff pos="+dp+" diff neg="+dn)
-	end do
+;	end do
 end

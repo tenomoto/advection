@@ -10,8 +10,8 @@ begin
 	nt =   20
 	tstep = 5
 	dev = "x11"
-	dir = "semi-lag"
-	run = "2500km_bilin"
+;	dir = "semi-lag"
+;	run = "2500km_bilin"
 ;	cint =   5
 ;	cmin = -30
 ;	cmax =  30
