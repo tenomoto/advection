@@ -6,7 +6,7 @@ FFLAGS = -O2 -I/usr/local/include
 LD = f90
 LDFLAGS = -flat_namespace -undefined suppress -L/usr/local/lib
 LDLIBS = -lfftw3
-MODEL = nisl
+MODEL = semilag
 
 SRC = constant_module.f90 parameter_module.f90 \
 	fft_module.f90 \
