@@ -11,7 +11,7 @@ module bicubic_module
 	use constant_module, only : i4b, dp
 	private
 
-	real(kind=dp), dimension(16,16), private :: c
+	real(kind=dp), dimension(4,4), private :: c
 	public :: bcucof, bcuint, bcuintp
 
 contains
