@@ -50,7 +50,7 @@ contains
 
     call legendre_init()
 
-    guess = pi/2 - 0.5_dp*pi/(jMax + 1)
+    guess = 0.5_dp*pi*(1.0_dp-1.0_dp/(jMax + 1))
     call newton(legendre_P, legendre_dP, guess, glat(jMid))
     guess = 3.0_dp*glat(jMid) - pi
     call newton(legendre_P, legendre_dP, guess, glat(jMid-1))
@@ -58,7 +58,6 @@ contains
       guess = 2*glat(l+1) - glat(l+2) 
       call newton(legendre_P, legendre_dP, guess, glat(l))
     end do
-    glat(jMax:jMid+1:-1) = pi-glat(1:jMid)
     do j = 1, jMid
       call legendre_dP(glat(j), dpn)
       gwgt(j) = (2.0_dp*jMax + 1.0_dp)/(dpn)**2
@@ -81,8 +80,10 @@ contains
 ! *****
 
     gwgt(jMax:jMid+1:-1) = gwgt(1:jMid)
-    lat = pi/2 - glat
-    glat = cos(glat)
+    lat(1:jMid) = 0.5_dp*pi - glat(1:jMid)
+    lat(jMax:jMid+1:-1) = -lat(1:jMid)
+    glat(1:jMid) = cos(glat(1:jMid))
+    glat(jMax:jMid+1:-1) = -glat(1:jMid)
 
     call legendre_clean()
   

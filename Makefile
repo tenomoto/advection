@@ -2,9 +2,11 @@
 .SUFFIXES : .f90 .o
 
 FC = g95
-FFLAGS = -O2 -I/usr/local/include 
+#FFLAGS = -O2 -I/usr/local/include 
+FFLAGS = -O2 -I/opt/local/include 
 LD = f90
-LDFLAGS = -flat_namespace -undefined suppress -L/usr/local/lib
+#LDFLAGS = -flat_namespace -undefined suppress -L/usr/local/lib
+LDFLAGS = -L/opt/local/lib
 LDLIBS = -lfftw3
 MODEL = semilag
 
@@ -41,7 +43,7 @@ nisl_module.o : constant_module.o parameter_module.o io_module.o legendre_transf
 main_$(MODEL).o : init_module.o $(MODEL)_module.o parameter_module.o constant_module.o
 
 clean :
-	rm -f *.o *.mod *.dat *.log $(TARGET)
+	rm -f *.o *.mod $(TARGET)
 
 .f90.o :
 	$(FC) $(FFLAGS) $< -c
