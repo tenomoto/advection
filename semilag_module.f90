@@ -2,8 +2,7 @@ module semilag_module
 
   use constant_module, only: i4b, dp, hour_in_sec, pi, a=>planet_radius
   use parameter_module, only: nlon, nlat, ntrunc, nstep, hstep, deltat
-  use glatwgt_module, only: latitudes=>lat
-  use init_module, only: su, sv, sphi_old, sphi
+  use grid_module, only: su, sv, sphi_old, sphi, latitudes=>lat
   use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
   use upstream_module, only: find_points

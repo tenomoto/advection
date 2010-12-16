@@ -22,7 +22,6 @@ module glatwgt_module
   real(kind=dp), private, parameter :: xacc_min = 1.0e-15_dp
   integer(kind=i4b), private :: jMid
   real(kind=dp), private, dimension(:), allocatable :: an
-  real(kind=dp), public, dimension(:), allocatable :: glat, gwgt, lat
 
   private :: legendre_init, legendre_P, legendre_dp, legendre_clean, newton
   public :: glatwgt_calc
@@ -31,22 +30,20 @@ contains
 
 ! Public procedures
 
-  subroutine glatwgt_calc(jMax)
-
+  subroutine glatwgt_calc(glat,gwgt)
     implicit none
-  
+
 ! calculates sin(Gaussian latitudes) between 1 and -1
 ! and Gaussian weights.
 ! NB. Gaussian colatitudes are used during calculation
 
-    integer(kind=i4b), intent(in) :: jMax
+    real(kind=dp), dimension(:), intent(inout) :: glat, gwgt
 
-    integer(kind=i4b) :: l, j, jj=1
+    integer(kind=i4b) :: l, j, jj=1, jMax
     real(kind=dp) :: guess, pn, dpn, pn_max=0.0_dp, s
 
+    jMax = size(glat)
     jMid = jMax/2
-
-    allocate(glat(jMax), gwgt(jMax), lat(jMax))
 
     call legendre_init()
 
@@ -80,8 +77,6 @@ contains
 ! *****
 
     gwgt(jMax:jMid+1:-1) = gwgt(1:jMid)
-    lat(1:jMid) = 0.5_dp*pi - glat(1:jMid)
-    lat(jMax:jMid+1:-1) = -lat(1:jMid)
     glat(1:jMid) = cos(glat(1:jMid))
     glat(jMax:jMid+1:-1) = -glat(1:jMid)
 

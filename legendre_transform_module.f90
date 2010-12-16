@@ -2,13 +2,16 @@ module legendre_transform_module
 
   use constant_module, only: i4b, dp
   use parameter_module, only: nlon, nlat, ntrunc
-  use glatwgt_module, only: glat, gwgt, glatwgt_calc
+  use glatwgt_module, only: glatwgt_calc
+  use grid_module, only: lat
   use alf_module, only: pnm, alf_calc, alf_enm
   use fft_module, only: fft_init, fft_analysis, fft_synthesis
+  use io_module, only: save_data
   implicit none
   private
 
-  complex(kind=dp), dimension(:,:), allocatable, public :: w
+  complex(kind=dp), dimension(:,:), allocatable, private :: w
+  real(kind=dp), dimension(:), allocatable, private :: glat, gwgt
 
   public :: legendre_init, legendre_analysis, legendre_synthesis, &
             legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
@@ -21,16 +24,26 @@ contains
     integer(kind=i4b) :: j, n, m
     real(kind=dp), dimension(:,:), allocatable :: g
 
-    call glatwgt_calc(nlat)
+    allocate(glat(nlat),gwgt(nlat))
+    call glatwgt_calc(glat,gwgt)
+    lat(:) = asin(glat(:))
     print *, "gaussian latitudes and weights"
     do j=1, nlat/2
-      print *, j, asin(glat(j)), gwgt(j)
+      print *, j, lat(j), gwgt(j)
     end do
-    call alf_calc(asin(glat), ntrunc+1)
+    call alf_calc(lat, ntrunc+1)
+    print *, "first few elements of Pnm"
+    do m=0, 5
+      do n=m, 5
+        print *, m, n, pnm(nlat/4,n,m)
+      end do
+    end do
 
     allocate(g(nlon,nlat), w(0:nlon/2,nlat))
     call fft_init(g, w)
     deallocate(g)
+    call save_data("w.dat", 1, real(w,kind=dp), "replace")
+    call save_data("w.dat", 2, aimag(w), "old")
 
   end subroutine legendre_init
 

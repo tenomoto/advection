@@ -10,7 +10,7 @@ module upstream_module
 ! 26 February 2004     First written
 
   use constant_module, only: i4b, dp, pi, a=>planet_radius
-  use glatwgt_module, only: latitudes=>lat
+  use grid_module, only: latitudes=>lat
   use interpolate_module, only: interpolate_setuv, interpolate_bilinearuv
   use sphere_module, only: xy2lon, lonlat2xyz, uv2xyz
   private

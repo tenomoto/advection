@@ -13,7 +13,7 @@ module interpolate_module
 ! 2004-03
 
   use constant_module, only: i4b, dp, pi
-  use glatwgt_module, only: latitudes=>lat
+  use grid_module, only: latitudes=>lat
   use sphere_module, only: lon2i, lat2j
   private
 

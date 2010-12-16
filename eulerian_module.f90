@@ -2,15 +2,14 @@ module eulerian_module
 
   use constant_module, only: i4b, dp, a=>planet_radius, hour_in_sec
   use parameter_module, only: nlon, nlat, ntrunc, nstep, hstep, deltat
-  use glatwgt_module, only: lat
-  use init_module, only: su, sv, sphi, sphi_old
+  use grid_module, only: gu, gv, su, sv, sphi, sphi_old, lat
   use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
                                        legendre_synthesis_dlon, legendre_synthesis_dlat
   use io_module, only: save_data
   private
 
   real(kind=dp), parameter, public :: time_filter_param = 0.0_dp
-  real(kind=dp), dimension(:,:), allocatable, private :: gu, gv, gphi, dgphi
+  real(kind=dp), dimension(:,:), allocatable, private :: gphi, dgphi
 
   integer(kind=i4b), private :: nsave = 0
   real(kind=dp), dimension(:), allocatable, private :: cos2
@@ -31,7 +30,7 @@ contains
     do j=1, nlat
       cos2(j) = cos(lat(j))*cos(lat(j))
     end do
-    allocate(gu(nlon,nlat), gv(nlon,nlat), gphi(nlon,nlat), &
+    allocate(gphi(nlon,nlat), &
       dgphi(nlon,nlat), sphi1(0:ntrunc,0:ntrunc))
 
     print *, "step=0 hour=0"
@@ -58,7 +57,7 @@ contains
 
   subroutine eulerian_clean()
 
-    deallocate(gu, gv, gphi, dgphi, sphi1)
+    deallocate(gphi, dgphi, sphi1)
 
   end subroutine eulerian_clean
 

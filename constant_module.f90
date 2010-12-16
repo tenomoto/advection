@@ -11,7 +11,8 @@ module constant_module
 
 ! Mathematical constants
   real(kind=dp), parameter :: &
-    pi = 3.1415926535897931d0
+    pi = 3.1415926535897931d0, &
+    deg2rad = pi/180.0_dp
 
 ! Physical constants
   real(kind=dp), parameter, public :: &
