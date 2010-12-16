@@ -7,9 +7,9 @@ module polint_module
 ! History:
 ! 2007-11-13 translated from Pascal
 
-	use constant_module, only : i4b, dp
+  use constant_module, only : i4b, dp
   implicit none
-	private
+  private
 
   real(kind=dp), dimension(:), allocatable, private :: c, d, ytmp
   logical, private :: lytmpinit = .false.
@@ -84,7 +84,7 @@ contains
     do j=1, n
       call polint(x1a, ya(:,j), x1, ytmp(j), dy)
     end do
-		call polint(x2a, ytmp, x2, y, dy)
+    call polint(x2a, ytmp, x2, y, dy)
 
   end subroutine polin2
 
