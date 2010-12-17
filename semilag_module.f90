@@ -2,7 +2,7 @@ module semilag_module
 
   use constant_module, only: i4b, dp, hour_in_sec, pi, a=>planet_radius
   use parameter_module, only: nlon, nlat, ntrunc, nstep, hstep, deltat
-  use grid_module, only: su, sv, sphi_old, sphi, latitudes=>lat
+  use grid_module, only: gu, gv, sphi_old, sphi, latitudes=>lat
   use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
   use upstream_module, only: find_points
@@ -17,7 +17,7 @@ module semilag_module
   real(kind=dp), parameter, public :: time_filter_param = 0.000_dp
   integer(kind=i4b), private :: nsave = 0, n = 3
   real(kind=dp), dimension(:,:), allocatable, private :: &
-    gu, gv, gphi_old, gphi, gphi1, gphix, gphiy, gphixy, midlon, midlat, deplon, deplat
+    gphi_old, gphi, gphi1, gphix, gphiy, gphixy, midlon, midlat, deplon, deplat
   complex(kind=dp), dimension(:,:), allocatable, private :: sphi1
   character(len=*), parameter, private :: hfile = "history.dat"
 
@@ -51,7 +51,7 @@ contains
     read *, fmono
     print *, "monotonic=", fmono
 
-    allocate(sphi1(0:ntrunc,0:ntrunc),gu(nlon,nlat),gv(nlon,nlat), &
+    allocate(sphi1(0:ntrunc,0:ntrunc), &
              gphi_old(nlon,nlat),gphi(nlon,nlat),gphi1(nlon,nlat), &
              gphix(nlon,nlat),gphiy(nlon,nlat),gphixy(nlon,nlat), &
              midlon(nlon,nlat),midlat(nlon,nlat),deplon(nlon,nlat),deplat(nlon,nlat))
@@ -60,14 +60,10 @@ contains
     print *, "step=0 hour=0"
     call legendre_synthesis(sphi_old,gphi_old)
     gphi = gphi_old
-    call legendre_synthesis(su,gu)
-    call legendre_synthesis(sv,gv)
-    do j=1, nlat
-      gu(:,j) = gu(:,j)/cos(latitudes(j))
-      gv(:,j) = gv(:,j)/cos(latitudes(j))
-    end do
-    print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
-    print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
+!    print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
+!    print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
+    print *, "umax=", real(maxval(gu)), " umin=", real(minval(gu))
+    print *, "vmax=", real(maxval(gv)), " vmin=", real(minval(gv))
     call io_save(hfile, 1, gphi, "replace")
     call io_save(hfile, 2, gu, "old")
     call io_save(hfile, 3, gv, "old")

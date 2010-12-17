@@ -55,8 +55,8 @@ contains
     kcosptt1 = kappa*cos(ptt1)
     do j=1, ny
       do i=1, nx
-        lambda1 = lon(i) - 2*ptt1
-        gu(i,j) = sin(lambda1)**2*sin(2*lat(j))*kcosptt1 + 2.0_dp*pt1*cos(lat(j))
+        lambda1 = lon(i) - 2.0_dp*ptt1
+        gu(i,j) = sin(lambda1)**2*sin(2.0_dp*lat(j))*kcosptt1 + 2.0_dp*pt1*cos(lat(j))
         gv(i,j) = sin(2.0_dp*lambda1)*cos(lat(j))*kcosptt1
       end do
     end do

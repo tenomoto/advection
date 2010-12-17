@@ -29,7 +29,7 @@ fft_module.o : constant_module.o
 glatwgt_module.o : constant_module.o
 alf_module.o : constant_module.o
 parameter_module.o : constant_module.o
-legendre_transform_module.o : glatwgt_module.o grid_module.o alf_module.o parameter_module.o constant_module.o io_module.o
+legendre_transform_module.o : glatwgt_module.o alf_module.o parameter_module.o constant_module.o io_module.o
 init_module.o : io_module.o sphere_module.o legendre_transform_module.o parameter_module.o constant_module.o uv_module.o
 upstream_module.o : constant_module.o sphere_module.o grid_module.o interpolate_module.o
 interpolate_module.o : constant_module.o grid_module.o sphere_module.o bicubic_module.o polint_module.o cubicspline_module.o
