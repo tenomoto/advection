@@ -1,15 +1,14 @@
 module legendre_transform_module
 
   use constant_module, only: i4b, dp
-  use parameter_module, only: nlon, nlat, ntrunc
   use glatwgt_module, only: glatwgt_calc
-  use grid_module, only: lat
   use alf_module, only: pnm, alf_calc, alf_enm
   use fft_module, only: fft_init, fft_analysis, fft_synthesis
-  use io_module, only: save_data
+  use io_module, only: io_save
   implicit none
   private
 
+  integer(kind=i4b), private :: nlon, nlat, ntrunc
   complex(kind=dp), dimension(:,:), allocatable, private :: w
   real(kind=dp), dimension(:), allocatable, private :: glat, gwgt
 
@@ -18,12 +17,18 @@ module legendre_transform_module
 
 contains
 
-  subroutine legendre_init()
+  subroutine legendre_init(nx,ny,nt,lat)
     implicit none
+
+    integer(kind=i4b), intent(in) :: nx, ny, nt
+    real(kind=dp), dimension(:), intent(inout) :: lat
 
     integer(kind=i4b) :: j, n, m
     real(kind=dp), dimension(:,:), allocatable :: g
 
+    nlon = nx
+    nlat = ny
+    ntrunc = nt
     allocate(glat(nlat),gwgt(nlat))
     call glatwgt_calc(glat,gwgt)
     lat(:) = asin(glat(:))
@@ -42,8 +47,8 @@ contains
     allocate(g(nlon,nlat), w(0:nlon/2,nlat))
     call fft_init(g, w)
     deallocate(g)
-    call save_data("w.dat", 1, real(w,kind=dp), "replace")
-    call save_data("w.dat", 2, aimag(w), "old")
+    call io_save("w.dat", 1, real(w,kind=dp), "replace")
+    call io_save("w.dat", 2, aimag(w), "old")
 
   end subroutine legendre_init
 

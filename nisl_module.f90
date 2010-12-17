@@ -3,14 +3,14 @@ module nisl_module
   use constant_module, only: i4b, dp, hour_in_sec, pi, a=>planet_radius
   use parameter_module, only: nlon, nlat, ntrunc, nstep, hstep, deltat
   use glatwgt_module, only: latitudes=>lat
-  use init_module, only: su, sv, sphi_old, sphi
+  use grid_module, only: su, sv, sphi_old, sphi
   use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
   use upstream_module, only: find_points
   use interpolate_module, only: interpolate_init, interpolate_clean, &
                                 interpolate_set, interpolate_bilinear, &
                                 interpolate_setuv, interpolate_bilinearuv
-  use io_module, only: save_data
+  use io_module, only: io_save
   use sphere_module, only: xyz2uv, lonlat2xyz, xy2lon, lat2j
   private
   
@@ -51,9 +51,9 @@ contains
     end do
     print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
     print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
-    call save_data(hfile, 1, gphi, "replace")
-    call save_data(hfile, 2, gu, "old")
-    call save_data(hfile, 3, gv, "old")
+    call io_save(hfile, 1, gphi, "replace")
+    call io_save(hfile, 2, gu, "old")
+    call io_save(hfile, 3, gv, "old")
     nsave = 1
 
     do i=1, nlon
@@ -69,9 +69,9 @@ contains
     call update(deltat)
     if (hstep==1) then
       call legendre_synthesis(sphi, gphi)
-      call save_data(hfile, 3*nsave+1, gphi, "old")
-      call save_data(hfile, 3*nsave+2, gu, "old")
-      call save_data(hfile, 3*nsave+3, gv, "old")
+      call io_save(hfile, 3*nsave+1, gphi, "old")
+      call io_save(hfile, 3*nsave+2, gu, "old")
+      call io_save(hfile, 3*nsave+3, gv, "old")
       nsave = nsave + 1
     end if
     call find_points(gu, gv, deltat, midlon, midlat, deplon, deplat)
@@ -99,9 +99,9 @@ contains
       if (mod(i,hstep)==0) then
         print *, "Saving step=", i
         call legendre_synthesis(sphi, gphi)
-        call save_data(hfile, 3*nsave+1, gphi, "old")
-        call save_data(hfile, 3*nsave+2, gu, "old")
-        call save_data(hfile, 3*nsave+3, gv, "old")
+        call io_save(hfile, 3*nsave+1, gphi, "old")
+        call io_save(hfile, 3*nsave+2, gu, "old")
+        call io_save(hfile, 3*nsave+3, gv, "old")
         nsave = nsave + 1
       end if
     end do

@@ -1,6 +1,5 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
 
 begin
 
@@ -45,8 +44,9 @@ begin
   u = x
   v = x
 ; fname1="semi-lag/history_L1e4km_bicubic.dat"
-; u = fbindirread(fname1, 1, (/ny, nx/), "double")*a
-; v = fbindirread(fname1, 2, (/ny, nx/), "double")*a
+ fname1 = "history.dat"
+ u = fbindirread(fname1, 1, (/ny, nx/), "double")*a
+ v = fbindirread(fname1, 2, (/ny, nx/), "double")*a
 
 ; wks = gsn_open_wks(dev, "history_ps_L"+run)
   wks = gsn_open_wks(dev, fname)
@@ -73,10 +73,11 @@ begin
   res@cnMaxLevelValF = 90.
   res@cnMonoLineThickness = False
   res@cnLineThicknesses = (/1.,2.,1.,2.,1.,2.,1.,2.,1.,2.,1.,2./)
-; res@gsnScalarContour = True
-; res@vcMinDistanceF = 0.017
-; res@vcRefMagnitudeF = 5.0
-; res@vcRefLengthF = 0.01
+
+ res@gsnScalarContour = True
+ res@vcMinDistanceF = 0.017
+ res@vcRefMagnitudeF = 5.0
+ res@vcRefLengthF = 0.01
 
   do i=0, nt, tstep
     res@gsnCenterString = "day="+i
@@ -84,8 +85,8 @@ begin
     print("day="+i+" max phi="+max(x)+" min phi="+min(x))
     res@gsnLeftString = "max="+max(x)
     res@gsnRightString = "min="+min(x)
-    plot = gsn_csm_contour_map(wks, x, res)
-;   plot = gsn_csm_vector_scalar_map(wks, u, v, x, res)
+;    plot = gsn_csm_contour_map(wks, x, res)
+   plot = gsn_csm_vector_scalar_map(wks, u, v, x, res)
   end do
 
 ; plot error 
@@ -98,13 +99,14 @@ begin
 ; rese@cnMaxLevelValF =  cmax
   rese@gsnDraw = False
   rese@gsnFrame = False
+  rese@gsnContourZeroLineThicknessF = 0.0
+  rese@gsnContourNegLineDashPattern = 2
   x0 = fbindirread(fname, 0, (/ny, nx/), "double")
   x = x-x0
   print("error max phi="+max(x)+" min phi="+min(x))
   rese@gsnLeftString = "max="+max(x)
   rese@gsnRightString = "min="+min(x)
   plot = gsn_csm_contour_map(wks, x, rese)
-  plot = ZeroGoneNegDashLineContour(plot)
   draw(plot)
   frame(wks)
 

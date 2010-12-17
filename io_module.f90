@@ -3,11 +3,11 @@ module io_module
   use constant_module, only: i4b, dp
   private
 
-  public save_data
+  public io_save
 
 contains
 
-  subroutine save_data(f, r, g, s)
+  subroutine io_save(f, r, g, s)
     implicit none
 
     character(len=*), intent(in) :: f, s
@@ -21,6 +21,6 @@ contains
     write(unit=u, rec=r) g
     close(unit=u)
 
-  end subroutine save_data
+  end subroutine io_save
 
 end module io_module

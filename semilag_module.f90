@@ -11,7 +11,7 @@ module semilag_module
                           interpolate_bilinear, interpolate_bicubic, &
                           interpolate_polin2, interpolate_linpol, &
                           interpolate_setdx, interpolate_spcher
-  use io_module, only: save_data
+  use io_module, only: io_save
   private
   
   real(kind=dp), parameter, public :: time_filter_param = 0.000_dp
@@ -68,9 +68,9 @@ contains
     end do
     print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
     print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
-    call save_data(hfile, 1, gphi, "replace")
-    call save_data(hfile, 2, gu, "old")
-    call save_data(hfile, 3, gv, "old")
+    call io_save(hfile, 1, gphi, "replace")
+    call io_save(hfile, 2, gu, "old")
+    call io_save(hfile, 3, gv, "old")
     nsave = 1
 
     do i=1, nlon
@@ -85,9 +85,9 @@ contains
     call update()
     if (hstep==1) then
       call legendre_synthesis(sphi, gphi)
-      call save_data(hfile, 3*nsave+1, gphi, "old")
-      call save_data(hfile, 3*nsave+2, gu, "old")
-      call save_data(hfile, 3*nsave+3, gv, "old")
+      call io_save(hfile, 3*nsave+1, gphi, "old")
+      call io_save(hfile, 3*nsave+2, gu, "old")
+      call io_save(hfile, 3*nsave+3, gv, "old")
       nsave = nsave + 1
     end if
     call find_points(gu, gv, deltat, midlon, midlat, deplon, deplat)
@@ -115,9 +115,9 @@ contains
         if (spectral) then
           call legendre_synthesis(sphi, gphi)
         end if
-        call save_data(hfile, 3*nsave+1, gphi, "old")
-        call save_data(hfile, 3*nsave+2, gu, "old")
-        call save_data(hfile, 3*nsave+3, gv, "old")
+        call io_save(hfile, 3*nsave+1, gphi, "old")
+        call io_save(hfile, 3*nsave+2, gu, "old")
+        call io_save(hfile, 3*nsave+3, gv, "old")
         nsave = nsave + 1
       end if
     end do

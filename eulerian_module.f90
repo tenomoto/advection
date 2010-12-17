@@ -5,7 +5,7 @@ module eulerian_module
   use grid_module, only: gu, gv, su, sv, sphi, sphi_old, lat
   use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
                                        legendre_synthesis_dlon, legendre_synthesis_dlat
-  use io_module, only: save_data
+  use io_module, only: io_save
   private
 
   real(kind=dp), parameter, public :: time_filter_param = 0.0_dp
@@ -37,9 +37,9 @@ contains
     call legendre_synthesis(sphi, gphi)
     call legendre_synthesis(su, gu)
     call legendre_synthesis(sv, gv)
-    call save_data(hfile, 1, gphi, "replace")
-    call save_data(hfile, 2, gu, "old")
-    call save_data(hfile, 3, gv, "old")
+    call io_save(hfile, 1, gphi, "replace")
+    call io_save(hfile, 2, gu, "old")
+    call io_save(hfile, 3, gv, "old")
     nsave = 1
 
     print *, "step=1/2", " hour=", real(0.5*deltat/hour_in_sec)
@@ -47,9 +47,9 @@ contains
     print *, "step=1", " hour=", real(deltat/hour_in_sec)
     call update(deltat)
     if (hstep==1) then
-      call save_data(hfile, 3*nsave+1, gphi, "old")
-      call save_data(hfile, 3*nsave+2, gu, "old")
-      call save_data(hfile, 3*nsave+3, gv, "old")
+      call io_save(hfile, 3*nsave+1, gphi, "old")
+      call io_save(hfile, 3*nsave+2, gu, "old")
+      call io_save(hfile, 3*nsave+3, gv, "old")
       nsave = nsave + 1
     end if
 
@@ -71,9 +71,9 @@ contains
       call update(2*deltat)
       if (mod(i,hstep)==0) then
         print *, "Saving step=", i
-        call save_data(hfile, 3*nsave+1, gphi, "old")
-        call save_data(hfile, 3*nsave+2, gu, "old")
-        call save_data(hfile, 3*nsave+3, gv, "old")
+        call io_save(hfile, 3*nsave+1, gphi, "old")
+        call io_save(hfile, 3*nsave+2, gu, "old")
+        call io_save(hfile, 3*nsave+3, gv, "old")
         nsave = nsave + 1
       end if
     end do

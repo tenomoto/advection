@@ -38,12 +38,12 @@ sphere_module.o : constant_module.o
 io_module.o : constant_module.o
 polint_module.o : constant_module.o
 cubicspline_module.o : constant_module.o
-grid_module.o : constant_module.o
+grid_module.o : constant_module.o legendre_transform_module.o io_module.o init_module.o
 uv_module.o : constant_module.o
-eulerian_module.o : constant_module.o parameter_module.o io_module.o grid_module.o legendre_transform_module.o init_module.o
-semilag_module.o : constant_module.o parameter_module.o io_module.o grid_module.o legendre_transform_module.o init_module.o upstream_module.o
-nisl_module.o : constant_module.o parameter_module.o io_module.o grid_module.o legendre_transform_module.o init_module.o upstream_module.o sphere_module.o
-main_$(MODEL).o : init_module.o $(MODEL)_module.o parameter_module.o constant_module.o
+eulerian_module.o : constant_module.o parameter_module.o io_module.o grid_module.o legendre_transform_module.o 
+semilag_module.o : constant_module.o parameter_module.o io_module.o grid_module.o legendre_transform_module.o upstream_module.o
+nisl_module.o : constant_module.o parameter_module.o io_module.o grid_module.o legendre_transform_module.o upstream_module.o sphere_module.o
+main_$(MODEL).o : $(MODEL)_module.o parameter_module.o constant_module.o
 
 clean :
 	rm -f *.o *.mod $(TARGET)
