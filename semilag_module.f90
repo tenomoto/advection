@@ -2,7 +2,7 @@ module semilag_module
 
   use constant_module, only: i4b, dp, hour_in_sec, pi, a=>planet_radius
   use parameter_module, only: nlon, nlat, ntrunc, nstep, hstep, deltat
-  use grid_module, only: gu, gv, sphi_old, sphi, latitudes=>lat
+  use grid_module, only: gu, gv, sphi_old, sphi, latitudes=>lat, lon
   use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
   use upstream_module, only: find_points
@@ -57,7 +57,9 @@ contains
              midlon(nlon,nlat),midlat(nlon,nlat),deplon(nlon,nlat),deplat(nlon,nlat))
     call interpolate_init(gphi, n)
 
-    print *, "step=0 hour=0"
+!    print *, "step=0 hour=0"
+    print *, "step=0 t=0"
+    print *, "Saving step=0"
     call legendre_synthesis(sphi_old,gphi_old)
     gphi = gphi_old
 !    print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
@@ -70,15 +72,16 @@ contains
     nsave = 1
 
     do i=1, nlon
-      midlon(i,:) = 2.0_dp*pi/nlon*(i-1)
+      midlon(i,:) = lon(i)
     end do
     do j=1, nlat
       midlat(:,j) = latitudes(j)
     end do
 
-    print *, "step=1", " hour=", real(deltat/hour_in_sec)
+!    print *, "step=1", " hour=", real(deltat/hour_in_sec)
+    print *, "step=1", " hour=", real(deltat)
     call find_points(gu, gv, 0.5_dp*deltat, midlon, midlat, deplon, deplat)
-    call update()
+    call update(deltat)
     if (hstep==1) then
       call legendre_synthesis(sphi, gphi)
       call io_save(hfile, 3*nsave+1, gphi, "old")
@@ -104,8 +107,9 @@ contains
     integer(kind=i4b) :: i
 
     do i=2, nstep
-      print *, "step=", i, " hour=", real(i*deltat/hour_in_sec)
-      call update()
+!      print *, "step=", i, " hour=", real(i*deltat/hour_in_sec)
+      print *, "step=", i, " t=", real(i*deltat)
+      call update(i*deltat)
       if (mod(i,hstep)==0) then
         print *, "Saving step=", i
         if (spectral) then
@@ -120,12 +124,18 @@ contains
 
   end subroutine semilag_timeint
 
-  subroutine update()
+  subroutine update(t)
+    use uv_module, only: uv_nodiv
     implicit none
+
+    real(kind=dp), intent(in) :: t
 
     integer(kind=i4b) :: i, j, m
     real(kind=dp) :: eps, dlonr
     real(kind=dp), dimension(nlon) :: gphitmp
+
+    call uv_nodiv(t,lon,latitudes,gu,gv)
+    call find_points(gu, gv, deltat, midlon, midlat, deplon, deplat)
 
     if (spectral) then
       call legendre_synthesis(sphi_old,gphi_old)

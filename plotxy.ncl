@@ -9,7 +9,8 @@ begin
   nt =  20 
   dt = 5./nt
   tstep =1 
-  dev = "x11"
+  dev = "xy"
+  run = "eulerian"
 ; dir = "semi-lag"
 ; run = "2500km_bilin"
 ; cint =   5
@@ -50,7 +51,7 @@ begin
 ; v = fbindirread(fname1, 2, (/ny, nx/), "double")
 
 ; wks = gsn_open_wks(dev, "history_ps_L"+run)
-  wks = gsn_open_wks(dev, fname)
+  wks = gsn_open_wks(dev, run)
 
   res = True
   res@gsnMaximize = True
