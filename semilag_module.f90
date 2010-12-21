@@ -71,9 +71,9 @@ contains
       midlat(:,j) = latitudes(j)
     end do
 
-    call update(0.5d0*deltat)
 !    print *, "step=1", " hour=", real(deltat/hour_in_sec)
-    print *, "step=1", " hour=", real(deltat)
+    print *, "step=1", " t=", real(deltat)
+    call update(0.5d0*deltat)
     if (hstep==1) then
       call legendre_synthesis(sphi, gphi)
       call io_save(hfile, 3*nsave+1, gphi, "old")
