@@ -1,27 +1,28 @@
 module nisl_module
 
   use constant_module, only: i4b, dp, hour_in_sec, pi, a=>planet_radius
-  use parameter_module, only: nlon, nlat, ntrunc, nstep, hstep, deltat
-  use glatwgt_module, only: latitudes=>lat
-  use grid_module, only: su, sv, sphi_old, sphi
+  use grid_module, only: nlon, nlat, ntrunc, &
+    gu, gv, gphi, sphi_old, sphi, longitudes=>lon, latitudes=>lat, coslatr
+  use time_module, only: nstep, hstep, deltat, imethod, imethoduv
   use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
   use upstream_module, only: find_points
   use interpolate_module, only: interpolate_init, interpolate_clean, &
-                                interpolate_set, interpolate_bilinear, &
-                                interpolate_setuv, interpolate_bilinearuv
+                                interpolate_set, interpolate_setuv, &
+                                interpolate_bilinear, interpolate_bilinearuv, &
+                                interpolate_polin2, interpolate_polin2uv
   use io_module, only: io_save
-  use sphere_module, only: xyz2uv, lonlat2xyz, xy2lon, lat2j
+  use sphere_module, only: xyz2uv, lonlat2xyz, lat2j
   private
   
-  real(kind=dp), parameter, public :: time_filter_param = 0.000_dp
   integer(kind=i4b), private :: nsave = 0
   integer(kind=i4b), allocatable, private :: p(:,:), q(:,:)
   real(kind=dp), dimension(:,:), allocatable, private :: &
-    gu, gv, gphi_old, gphi, dgphi, dgphim, gphim,&
+    gphi_old, dgphi, dgphim, gphim,&
     midlon, midlat, deplon, deplat, gum, gvm
   complex(kind=dp), dimension(:,:), allocatable, private :: sphi1
-  character(len=*), parameter, private :: hfile = "history.dat"
+  character(len=*), parameter, private :: &
+    ifile = "init.dat", hfile = "history.dat"
 
   private :: update
   public :: nisl_init, nisl_timeint, nisl_clean
@@ -33,40 +34,37 @@ contains
 
     integer(kind=i4b) :: i,j
 
-    allocate(sphi1(0:ntrunc,0:ntrunc),gu(nlon,nlat),gv(nlon,nlat),gphi_old(nlon,nlat), &
-             gphi(nlon,nlat),gphim(nlon,nlat),dgphi(nlon,nlat),dgphim(nlon,nlat), &
+    allocate(sphi1(0:ntrunc,0:ntrunc),gphi_old(nlon,nlat), &
+             gphim(nlon,nlat),dgphi(nlon,nlat),dgphim(nlon,nlat), &
              midlon(nlon,nlat),midlat(nlon,nlat), &
              deplon(nlon,nlat),deplat(nlon,nlat), p(nlon,nlat), q(nlon,nlat), &
              gum(nlon,nlat),gvm(nlon,nlat))
     call interpolate_init(gphi)
 
-    print *, "step=0 hour=0"
-    call legendre_synthesis(sphi_old,gphi_old)
-    gphi = gphi_old
-    call legendre_synthesis(su,gu)
-    call legendre_synthesis(sv,gv)
-    do j=1, nlat
-      gu(:,j) = gu(:,j)/cos(latitudes(j))
-      gv(:,j) = gv(:,j)/cos(latitudes(j))
-    end do
-    print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
-    print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
+!    print *, "step=0 hour=0"
+    print *, "step=0 t=0"
+    print *, "umax=", real(maxval(gu)), " umin=", real(minval(gu))
+    print *, "vmax=", real(maxval(gv)), " vmin=", real(minval(gv))
+    call io_save(ifile, 1, gphi, "replace")
+    call io_save(ifile, 2, gu, "old")
+    call io_save(ifile, 3, gv, "old")
     call io_save(hfile, 1, gphi, "replace")
     call io_save(hfile, 2, gu, "old")
     call io_save(hfile, 3, gv, "old")
     nsave = 1
 
     do i=1, nlon
-      midlon(i,:) = 2.0_dp*pi/nlon*(i-1)
+      midlon(i,:) = longitudes(i)
     end do
     do j=1, nlat
       midlat(:,j) = latitudes(j)
     end do
 
-    print *, "step=1", " hour=", real(deltat/hour_in_sec)
-    call find_points(gu, gv, 0.5_dp*deltat, midlon, midlat, deplon, deplat)
-    call calc_niuv(deltat)
-    call update(deltat)
+    print *, "step=1/2", " t=", real(0.5d0*deltat)
+    call update(0.25d0*deltat,0.5*deltat)
+!    print *, "step=1", " hour=", real(deltat/hour_in_sec)
+    print *, "step=1", " t=", real(deltat)
+    call update(0.5d0*deltat,deltat)
     if (hstep==1) then
       call legendre_synthesis(sphi, gphi)
       call io_save(hfile, 3*nsave+1, gphi, "old")
@@ -74,15 +72,13 @@ contains
       call io_save(hfile, 3*nsave+3, gv, "old")
       nsave = nsave + 1
     end if
-    call find_points(gu, gv, deltat, midlon, midlat, deplon, deplat)
-    call calc_niuv(2.0_dp*deltat)
 
   end subroutine nisl_init
 
   subroutine nisl_clean()
     implicit none
 
-    deallocate(sphi1,gu,gv,gphi,gphi_old,gphim,dgphi,dgphim,gum,gvm, &
+    deallocate(sphi1,gphi_old,gphim,dgphi,dgphim,gum,gvm, &
       midlon,midlat,deplon,deplat,p,q)
     call interpolate_clean()
 
@@ -93,11 +89,12 @@ contains
 
     integer(kind=i4b) :: i
 
-    do i=2, nstep
-      print *, "step=", i, " hour=", real(i*deltat/hour_in_sec)
-      call update(2.0_dp*deltat)
-      if (mod(i,hstep)==0) then
-        print *, "Saving step=", i
+    do i=2, nstep+1
+!      print *, "step=", i, " hour=", real(i*deltat/hour_in_sec)
+      print *, "step=", i, " t=", real(i*deltat)
+      call update((i-1)*deltat,2.0_dp*deltat)
+      if (mod(i-1,hstep)==0) then
+        print *, "Saving step=", i-1
         call legendre_synthesis(sphi, gphi)
         call io_save(hfile, 3*nsave+1, gphi, "old")
         call io_save(hfile, 3*nsave+2, gu, "old")
@@ -108,37 +105,17 @@ contains
 
   end subroutine nisl_timeint
 
-  subroutine update(dt)
+  subroutine update(t,dt)
+    use time_module, only: etf
+    use uv_module, only: uv_nodiv
     implicit none
 
     integer(kind=i4b) :: i, j, m
-    real(kind=dp), intent(in) :: dt
+    real(kind=dp), intent(in) :: t, dt
 
-    ! dF/dlon
-    call legendre_synthesis_dlon(sphi, dgphi)
-    do j= 1, nlat
-      dgphi(:,j) = dgphi(:,j)/cos(latitudes(j))
-    end do
-    call interpolate_set(dgphi)
-    do j=1, nlat
-      do i=1, nlon
-        call interpolate_bilinear(midlon(i,j), midlat(i,j), dgphim(i,j))
-      end do
-    end do
-    gphim = gum*dgphim
-
-    ! cos(lat)dF/dlat
-    call legendre_synthesis_dlat(sphi, dgphi) 
-    do j= 1, nlat
-      dgphi(:,j) = dgphi(:,j)/cos(latitudes(j))
-    end do
-    call interpolate_set(dgphi)
-    do j=1, nlat
-      do i=1, nlon
-        call interpolate_bilinear(midlon(i,j), midlat(i,j), dgphim(i,j))
-      end do
-    end do
-    gphim = gphim + gvm*dgphim
+    call uv_nodiv(t,longitudes,latitudes,gu,gv)
+    call find_points(gu, gv, dt, midlon, midlat, deplon, deplat)
+    call calc_niuv(dt)
 
     call legendre_synthesis(sphi_old, gphi_old)
     do j=1, nlat
@@ -146,13 +123,42 @@ contains
         gphi(i,j) = gphi_old(p(i,j),q(i,j))
       end do
     end do
+
+    ! dF/dlon
+    call legendre_synthesis_dlon(sphi, dgphi)
+    call interpolate_set(dgphi)
+    do j=1, nlat
+      do i=1, nlon
+        if (imethod=="polin2") then
+          call interpolate_polin2(midlon(i,j), midlat(i,j), dgphim(i,j))
+        else
+          call interpolate_bilinear(midlon(i,j), midlat(i,j), dgphim(i,j))
+        end if
+      end do
+      gphim(:,j) = gum(:,j)*coslatr(j)*dgphim(:,j) ! gum: -u'
+    end do
+
+    ! cos(lat)dF/dlat
+    call legendre_synthesis_dlat(sphi, dgphi) 
+    call interpolate_set(dgphi)
+    do j=1, nlat
+      do i=1, nlon
+        if (imethod=="polin2") then
+          call interpolate_polin2(midlon(i,j), midlat(i,j), dgphim(i,j))
+        else
+          call interpolate_bilinear(midlon(i,j), midlat(i,j), dgphim(i,j))
+        end if
+      end do
+      gphim(:,j) = gphim(:,j) + gvm(:,j)*coslatr(j)*dgphim(:,j) ! gvm: -v'
+    end do
+
     gphi = gphi + dt*gphim
 
 ! time filter
     call legendre_analysis(gphi, sphi1)
     do m=0, ntrunc
       sphi_old(m:ntrunc,m) = sphi(m:ntrunc,m) + &
-        time_filter_param * (sphi_old(m:ntrunc,m)-2.0_dp*sphi(m:ntrunc,m)+sphi1(m:ntrunc,m))
+        etf * (sphi_old(m:ntrunc,m)-2.0_dp*sphi(m:ntrunc,m)+sphi1(m:ntrunc,m))
       sphi(m:ntrunc,m) = sphi1(m:ntrunc,m)
     end do
 
@@ -165,36 +171,37 @@ contains
 
     integer(kind=i4b) :: i,j,ii
     real(kind=dp) :: xg, yg, zg, xr, yr, zr, xm, ym, zm, xd, yd, zd, &
-                     lon, lat, lonr, latr, lonm, latm, u, v, dlon, b
+      lon, lat, lonr, latr, lonm, latm, u, v, pir, dlonr, b
 
-    dlon = 2.0_dp*pi/nlon
+    pir = 1.0_dp/pi
+    dlonr = 0.5_dp*nlon*pir
     call interpolate_setuv(gu,gv)
     do j=1, nlat
       lat = latitudes(j)
       do i=1, nlon
 ! find grid points near departure points
-        p(i,j) = anint(deplon(i,j)/dlon+1.0_dp)
+        p(i,j) = anint(deplon(i,j)*dlonr+1.0_dp)
         if (p(i,j)>nlon) then
           p(i,j) = p(i,j)-nlon
         end if
 ! lat = (J+1-2j)pi/(2J+1)
-        q(i,j) = anint(0.5_dp*(nlat+1-(2.0_dp*nlat+1.0_dp)*deplat(i,j)/pi))
-        lonr = dlon * (p(i,j)-1)
+        q(i,j) = anint(0.5_dp*(nlat+1-(2.0_dp*nlat+1.0_dp)*deplat(i,j)*pir))
+        lonr = longitudes(p(i,j))
         latr = latitudes(q(i,j))  
         call lonlat2xyz(lonr,latr,xr,yr,zr)
 ! arrival points
-        lon = dlon * (i-1)
+        lon = longitudes(i)
         call lonlat2xyz(lon,lat,xg,yg,zg)
-! calculate midpoints between new departure points and arrival points
+! calculate midpoints between integer departure points and arrival points
         b = 1.0_dp/sqrt(2.0_dp*(1.0_dp+(xg*xr+yg*yr+zg*zr)))
         xm = b*(xg + xr)
         ym = b*(yg + yr)
         zm = b*(zg + zr)
-        midlon(i,j) = xy2lon(xm,ym)
+        midlon(i,j) = modulo(atan2(ym,xm)+2.0_dp*pi,2.0_dp*pi)
         midlat(i,j) = asin(zm)
 !       print *, real(lon*180/pi), real(midlon(i,j)*180/pi), real(lonr*180/pi), &
 !         real(lat*180/pi), real(midlat(i,j)*180/pi), real(latr*180/pi)
-! calculate velocities at midpoints
+! calculate integer velocities at midpoints
         xd = (xg-xr)/dt
         yd = (yg-yr)/dt
         zd = (zg-zr)/dt
@@ -203,7 +210,12 @@ contains
 !       print *, real(zg), real(zr), real(zd), real(v*a)
         gum(i,j) = u
         gvm(i,j) = v
-        call interpolate_bilinearuv(midlon(i,j), midlat(i,j), u, v)
+! calculate velocity at midpoints and -residual velocities
+        if (imethoduv=="polin2") then
+          call interpolate_polin2uv(midlon(i,j), midlat(i,j), u, v)
+        else
+          call interpolate_bilinearuv(midlon(i,j), midlat(i,j), u, v)
+        end if
         gum(i,j) = gum(i,j) - u
         gvm(i,j) = gvm(i,j) - v
       end do

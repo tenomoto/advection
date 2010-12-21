@@ -24,7 +24,7 @@ module constant_module
     planet_radius = 6.371d6,  &
     day_in_sec = 86400.0d0,   &
     hour_in_sec = 3600.0d0,   &
-    angular_velocity = 2.d0*pi/day_in_sec
-  
+    angular_velocity = 2.0d0*pi/day_in_sec
+
 end module constant_module
 

@@ -1,7 +1,0 @@
-#!/bin/sh
-./adv << EOF > adv.log 2>&1
-39
-500
-0.01
-25
-EOF

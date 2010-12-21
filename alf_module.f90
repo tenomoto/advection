@@ -49,7 +49,7 @@ contains
 
     jmax = size(glat)
     jmax2 = jmax/2
-    allocate(pnm(jmax2, 0:mmax, 0:mmax), stat = ierr)
+    allocate(pnm(jmax2, -1:mmax, 0:mmax), stat = ierr)
     if (ierr > 0) then
       print *, "Allocation err in alf_calc"
       stop
@@ -84,7 +84,7 @@ contains
     real(kind=dp), dimension(:,:), allocatable :: ank
     
     jmax = size(lat)
-    allocate(pnm(jmax/2, 0:mmax, 0:mmax), stat = ierr)
+    allocate(pnm(jmax/2, -1:mmax, 0:mmax), stat = ierr)
     if (ierr > 0) then
       print *, "Allocation err in alf_calc"
       stop

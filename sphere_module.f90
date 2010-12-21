@@ -3,7 +3,7 @@ module sphere_module
   use constant_module, only: i4b, dp, pi
   private
 
-  public :: xy2lon, lonlat2xyz, uv2xyz, xyz2uv, lon2i, lat2j, orthodrome
+  public :: lonlat2xyz, uv2xyz, xyz2uv, lon2i, lat2j, orthodrome
 
 contains
 
@@ -37,37 +37,15 @@ contains
     real(kind=dp), intent(in) :: xd, yd, zd, lon, lat
     real(kind=dp), intent(out) :: u, v
 
-    u = cos(lon)*yd - sin(lon)*xd
-    if (abs(lat) == pi/2) then
-      v = -cos(lon)*xd-sin(lon)*yd ! omitted division by sin(pi/2) = 1
+    if (abs(lat) == pi/2) then ! lon = 0 is chosen
+      u =  yd
+      v = -xd ! omitted division by sin(pi/2) = 1
     else
+      u = cos(lon)*yd - sin(lon)*xd
       v = zd/cos(lat)
     end if
 
   end subroutine xyz2uv
-
-  function xy2lon(x,y) result(lon)
-    implicit none
-
-    real(kind=dp), intent(in) :: x, y
-    real(kind=dp) :: lon
-
-    if (x==0.0_dp) then
-      if (y>=0.0_dp) then
-        lon = pi/2.0_dp
-      else
-        lon = -pi/2.0_dp
-      end if
-    else
-      lon = atan(y/x)
-      if (x<0.0_dp) then
-        lon = lon + pi
-      else if (y<0.0_dp) then ! x1 > 0.0
-        lon = lon + 2.0_dp*pi
-      end if
-    end if
-
-  end function xy2lon
 
   function lon2i(lon,nx) result(i)
   ! returns the closest longitudinal point i, not exceeding lon
@@ -78,10 +56,10 @@ contains
     integer(kind=i4b), intent(in) :: nx
 
     integer(kind=i4b) :: i
-    real(kind=dp) :: dlon
+    real(kind=dp) :: dlonr
 
-    dlon = 2.0_dp*pi/nx
-    i = floor(lon/dlon+1.0_dp) ! lon = 2pi/nx*(i-1)=dlon*(i-1)
+    dlonr = nx/(2.0_dp*pi)
+    i = floor(lon*dlonr+1.0_dp) ! lon = 2pi/nx*(i-1)=dlon*(i-1)
 
   end function lon2i
 

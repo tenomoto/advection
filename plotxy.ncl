@@ -3,14 +3,14 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 
 begin
 
-  ntrunc = 39
-  nx = 3*(ntrunc+1)
-  ny = nx/2
+  ntrunc = 42
+  nx = 128
+  ny =  64
   nt =  20 
   dt = 5./nt
   tstep =1 
-  dev = "xy"
-  run = "eulerian"
+;  dev = "x11"
+;  run = "eulerian"
 ; dir = "semi-lag"
 ; run = "2500km_bilin"
 ; cint =   5

@@ -11,11 +11,13 @@ module upstream_module
 
   use constant_module, only: i4b, dp, pi, a=>planet_radius
   use grid_module, only: latitudes=>lat
-  use interpolate_module, only: interpolate_setuv, interpolate_bilinearuv
-  use sphere_module, only: xy2lon, lonlat2xyz, uv2xyz
+  use time_module, only: imethoduv
+  use interpolate_module, only: &
+    interpolate_setuv, interpolate_bilinearuv, interpolate_polin2uv
+  use sphere_module, only: lonlat2xyz, uv2xyz
   private
 
-  integer(kind=i4b), public :: itermax = 10
+  integer(kind=i4b), public :: itermax = 5
   real(kind=dp), public :: small = 1.0e-10
 
   public :: find_points
@@ -62,8 +64,12 @@ contains
           z1 =  b*(zg - dt*zd)
           ! calculate (lon,lat) from (x,y,z)
           lat = asin(z1)
-          lon = xy2lon(x1,y1)
-          call interpolate_bilinearuv(lon, lat, un, vn) 
+          lon = modulo(atan2(y1,x1)+2.0_dp*pi,2.0_dp*pi)
+          if (imethoduv=="polin2") then
+            call interpolate_polin2uv(lon, lat, un, vn) 
+          else
+            call interpolate_bilinearuv(lon, lat, un, vn) 
+          end if
           err = sqrt((x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+(z1-z0)*(z1-z0)) ! calculate error
           x0 = x1 ! save as the current point
           y0 = y1
@@ -79,7 +85,7 @@ contains
         x1 = b*x0 - xg
         y1 = b*y0 - yg
         z1 = b*z0 - zg
-        deplon(i,j) = xy2lon(x1,y1)
+        deplon(i,j) = modulo(atan2(y1,x1)+2.0_dp*pi,2.0_dp*pi)
         deplat(i,j) = asin(z1)
       end do
     end do

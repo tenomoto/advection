@@ -13,7 +13,7 @@ module interpolate_module
 ! 2004-03
 
   use constant_module, only: i4b, dp, pi
-  use grid_module, only: latitudes=>lat
+  use grid_module, only: latitudes=>lat, coslat
   use sphere_module, only: lon2i, lat2j
   private
 
@@ -25,26 +25,29 @@ module interpolate_module
 
   private :: find_stencil
   public :: interpolate_init, interpolate_clean, &
-            interpolate_set, interpolate_setuv, interpolate_setd, &
+            interpolate_set, interpolate_setuv, &
+            interpolate_setd, interpolate_setdx, &
             interpolate_bilinear, interpolate_bilinearuv, &
-            interpolate_bicubic, interpolate_polin2, interpolate_linpol, &
-            interpolate_setdx, interpolate_spcher
+            interpolate_polin2, interpolate_polin2uv, &
+            interpolate_bicubic, interpolate_linpol, &
+            interpolate_spcher
 
 contains
 
-  subroutine interpolate_init(f,k)
+  subroutine interpolate_init(f)
     implicit none
 
     real(kind=dp), dimension(:,:) :: f
-    integer(kind=i4b), optional :: k
 
     integer(kind=i4b) :: i, j
 
+    namelist /interpolate/ n
+
+    read(unit=5, nml=interpolate)
+    write(unit=6, nml=interpolate)
+
     nx = size(f,1)
     ny = size(f,2)
-    if (present(k)) then
-      n = k
-    end if
     nh = n/2
     nx1 = 1 - nh
     nx2 = nx + nh + 1
@@ -106,6 +109,7 @@ contains
     real(kind=dp), intent(in) :: lon, lat
     real(kind=dp), intent(out) :: fiu, fiv
 
+    real(kind=dp) :: coslatr
     real(kind=dp), dimension(4) :: fsu, fsv
     integer(kind=i4b) :: k
 
@@ -117,6 +121,9 @@ contains
 !    if (abs(lat)<latf(1)) then
       fiu = (1.0_dp-u)*((1.0_dp-t)*fsu(1)+t*fsu(2)) + u*(t*fsu(3)+(1.0_dp-t)*fsu(4))
       fiv = (1.0_dp-u)*((1.0_dp-t)*fsv(1)+t*fsv(2)) + u*(t*fsv(3)+(1.0_dp-t)*fsv(4))
+      coslatr = 1.0_dp/cos(lat)
+      fiu = fiu*coslatr
+      fiv = fiv*coslatr
 !    else
 !      fiu = (1.0_dp-u)*((1.0_dp-t)*fsu(1)+t*fsu(2)) + u*(t*fsu(4)+(1.0_dp-t)*fsu(3))
 !      fiv = (1.0_dp-u)*((1.0_dp-t)*fsv(1)+t*fsv(2)) + u*(t*fsv(4)+(1.0_dp-t)*fsv(3))
@@ -189,6 +196,40 @@ contains
 
   end subroutine interpolate_polin2
 
+  subroutine interpolate_polin2uv(lon, lat, fiu, fiv, monotonic)
+    use polint_module, only : polin2
+    implicit none
+
+    real(kind=dp), intent(in) :: lon, lat
+    real(kind=dp), intent(out) :: fiu, fiv
+    logical, optional, intent(in) :: monotonic
+
+    integer(kind=i4b) :: i0, i1, i2, j0, j1, j2
+    real(kind=dp) :: dfi, coslatr
+
+    call find_stencil(lon, lat)
+    i0 = is(1)
+    i1 = i0 - nh
+    i2 = i0 + nh + 1
+    j0 = js(1)
+    j1 = j0 - nh
+    j2 = j0 + nh + 1
+    call polin2(lonf(i1:i2), latf(j1:j2), fu(i1:i2,j1:j2), lon, lat, fiu, dfi)
+    call polin2(lonf(i1:i2), latf(j1:j2), fv(i1:i2,j1:j2), lon, lat, fiv, dfi)
+
+! Bermejo and Staniforth 1992
+    if (present(monotonic).and.(monotonic)) then
+      fiu = min(fiu,maxval(fu(i0:i0+1,j0:j0+1)))
+      fiu = max(fiu,minval(fu(i0:i0+1,j0:j0+1)))
+      fiv = min(fiv,maxval(fv(i0:i0+1,j0:j0+1)))
+      fiv = max(fiv,minval(fv(i0:i0+1,j0:j0+1)))
+    end if
+    coslatr = 1.0_dp/cos(lat)
+    fiu = fiu * coslatr
+    fiv = fiv * coslatr
+
+  end subroutine interpolate_polin2uv
+
   subroutine interpolate_linpol(lon, lat, fi, monotonic)
     use polint_module, only : polint
     implicit none
@@ -212,7 +253,7 @@ contains
       ytmp(j-j1+1) =  (1.0_dp-t)*ff(i0,j)+t*ff(i0+1,j)
     end do
     do j=j0, j0+1
-    	call polint(lonf(i1:i2), ff(i1:i2,j), lon, ytmp(j-j1+1), dfi)
+      call polint(lonf(i1:i2), ff(i1:i2,j), lon, ytmp(j-j1+1), dfi)
     end do
     do j=j0+2, j2
       ytmp(j-j1+1) =  (1.0_dp-t)*ff(i0,j)+t*ff(i0+1,j)
@@ -291,8 +332,10 @@ contains
 
     integer(kind=i4b) :: i, j
 
-    fu(1:nx,1:ny) = gu
-    fv(1:nx,1:ny) = gv
+    do j=1, ny
+      fu(1:nx,j) = gu(:,j)*coslat(j)
+      fv(1:nx,j) = gv(:,j)*coslat(j)
+    end do
 ! direction of u, v is reversed beyond poles
     do j=1, nh+1
       fu(1:nx,1-j) = -cshift(fu(1:nx,j),nx/2)
