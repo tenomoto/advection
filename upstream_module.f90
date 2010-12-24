@@ -1,6 +1,13 @@
 module upstream_module
-
 ! finds departure and mid-points
+  use kind_module, only: i4b, dp
+  use grid_module, only: latitudes=>lat
+  use time_module, only: imethoduv
+  use interpolate_module, only: &
+    interpolate_setuv, interpolate_bilinearuv, interpolate_polin2uv
+  use sphere_module, only: lonlat2xyz, uv2xyz
+  implicit none
+  private
 
 ! Reference: Ritchie (1987)
 ! Method: use the Cartesian coordinates with the origin at the centre of the sphere
@@ -8,14 +15,6 @@ module upstream_module
 ! Author: T. Enomoto
 ! History: 
 ! 26 February 2004     First written
-
-  use constant_module, only: i4b, dp, pi, a=>planet_radius
-  use grid_module, only: latitudes=>lat
-  use time_module, only: imethoduv
-  use interpolate_module, only: &
-    interpolate_setuv, interpolate_bilinearuv, interpolate_polin2uv
-  use sphere_module, only: lonlat2xyz, uv2xyz
-  private
 
   integer(kind=i4b), public :: itermax = 5
   real(kind=dp), public :: small = 1.0e-10
@@ -25,6 +24,7 @@ module upstream_module
 contains
 
   subroutine find_points(u, v, dt, midlon, midlat, deplon, deplat)
+    use math_module, only: pi2=>math_pi2
     implicit none
 
     real(kind=dp), dimension(:,:), intent(in) :: u, v
@@ -49,7 +49,7 @@ contains
 ! calculate initial values
         un = u(i,j)
         vn = v(i,j)
-        lon = 2.0_dp*pi*(i-1)/nx ! calculate (lon,lat) from (i,j)
+        lon = pi2*(i-1)/nx ! calculate (lon,lat) from (i,j)
         lat = latitudes(j)
         call lonlat2xyz(lon, lat, xg, yg, zg) ! transform into Cartesian coordinates
         ! r = g as an initial point for the 1st time step
@@ -64,7 +64,7 @@ contains
           z1 =  b*(zg - dt*zd)
           ! calculate (lon,lat) from (x,y,z)
           lat = asin(z1)
-          lon = modulo(atan2(y1,x1)+2.0_dp*pi,2.0_dp*pi)
+          lon = modulo(atan2(y1,x1)+pi2,pi2)
           if (imethoduv=="polin2") then
             call interpolate_polin2uv(lon, lat, un, vn) 
           else
@@ -85,7 +85,7 @@ contains
         x1 = b*x0 - xg
         y1 = b*y0 - yg
         z1 = b*z0 - zg
-        deplon(i,j) = modulo(atan2(y1,x1)+2.0_dp*pi,2.0_dp*pi)
+        deplon(i,j) = modulo(atan2(y1,x1)+pi2,pi2)
         deplat(i,j) = asin(z1)
       end do
     end do

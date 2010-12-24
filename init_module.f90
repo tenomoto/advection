@@ -1,6 +1,8 @@
 module init_module
-
-  use constant_module, only: i4b, dp, pi
+  use kind_module, only: i4b, dp
+  use math_module, only: pi=>math_pi
+  implicit none
+  private
 
   integer, parameter, private :: nc = 2
   real(kind=dp), dimension(nc), private :: &
@@ -13,7 +15,8 @@ contains
 
 ! Ritche 1987
   subroutine init_ghill(lon,lat,gphi)
-    use constant_module, only: a=>planet_radius, deg2rad
+    use planet_module, only: a=>planet_radius
+    use math_module, only: deg2rad=>math_deg2rad
     use sphere_module, only: orthodrome
     implicit none
 
@@ -65,7 +68,6 @@ contains
     end do
 
   end subroutine init_ghill2
-
 
   subroutine init_cbell2(lon,lat,gphi)
     use sphere_module, only: orthodrome

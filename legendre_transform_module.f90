@@ -1,6 +1,5 @@
 module legendre_transform_module
-
-  use constant_module, only: i4b, dp
+  use kind_module, only: i4b, dp
   use glatwgt_module, only: glatwgt_calc
   use alf_module, only: pnm, alf_calc, alf_enm
   use fft_module, only: fft_init, fft_analysis, fft_synthesis
@@ -17,11 +16,11 @@ module legendre_transform_module
 
 contains
 
-  subroutine legendre_init(nx,ny,nt,lat)
+  subroutine legendre_init(nx,ny,nt,lat,wgt)
     implicit none
 
     integer(kind=i4b), intent(in) :: nx, ny, nt
-    real(kind=dp), dimension(:), intent(inout) :: lat
+    real(kind=dp), dimension(:), intent(inout) :: lat, wgt
 
     integer(kind=i4b) :: j, n, m
     real(kind=dp), dimension(:,:), allocatable :: g
@@ -32,6 +31,7 @@ contains
     allocate(glat(nlat),gwgt(nlat))
     call glatwgt_calc(glat,gwgt)
     lat(:) = asin(glat(:))
+    wgt(:) = gwgt(:)
     print *, "gaussian latitudes and weights"
     do j=1, nlat/2
       print *, j, lat(j), gwgt(j)
@@ -51,6 +51,13 @@ contains
     call io_save("w.dat", 2, aimag(w), "old")
 
   end subroutine legendre_init
+
+  subroutine legendre_clean
+    implicit none
+
+    deallocate(glat,gwgt,w)
+
+  end subroutine legendre_clean
 
   subroutine legendre_analysis(g,s)
     implicit none

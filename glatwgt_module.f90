@@ -1,6 +1,9 @@
 module glatwgt_module
-
 ! calculates Gaussian points and weights.
+  use kind_module, only: i4b, dp
+  use math_module, only: pi=>math_pi
+!  implicit none
+  private
 
 ! Source: Based on Swartztrauber (2003)
 ! Author: T. Enomoto
@@ -13,10 +16,6 @@ module glatwgt_module
 !   TE 27 Apr 2003  Fixed a bug in setting SH colatitudes
 !   TE 28 Apr 2003  Ported for AFES
 !   TE 24 Apr 2003  Implemented Fourier-Legendre formulation.
-
-  use constant_module, only: i4b, dp, pi
-  implicit none
-  private
 
 ! xacc_min  double minimum accuracy available
   real(kind=dp), private, parameter :: xacc_min = 1.0e-15_dp
@@ -87,7 +86,6 @@ contains
 ! private procedures
 
 subroutine legendre_init()
-
   implicit none
 
   real(kind=dp), parameter :: a0sq = 1.5_dp
@@ -110,7 +108,6 @@ subroutine legendre_init()
 end subroutine legendre_init
 
 subroutine legendre_P(theta, pn)
-
   implicit none
 
   real(kind=dp), intent(in) :: theta
@@ -126,7 +123,6 @@ subroutine legendre_P(theta, pn)
 end subroutine legendre_P
 
 subroutine legendre_dP(theta, dpn)
-
   implicit none
 
   real(kind=dp), intent(in) :: theta
@@ -142,25 +138,26 @@ subroutine legendre_dP(theta, dpn)
 end subroutine legendre_dP
 
 subroutine legendre_clean()
+  implicit none
 
   deallocate(an)
 
 end subroutine legendre_clean
 
 subroutine newton(f, df, x0, x, tolerance)
-
+  use kind_module, only: dp, i4b
   implicit none
 
 ! finds the root u
 
   interface
     subroutine f(x, f_result)
-      use constant_module, only: dp
+      use kind_module, only: dp
       real(kind=dp), intent(in) :: x
       real(kind=dp), intent(out) :: f_result
     end subroutine f
     subroutine df(x, f_result)
-      use constant_module, only: dp
+      use kind_module, only: dp
       real(kind=dp), intent(in) :: x
       real(kind=dp), intent(out) :: f_result
     end subroutine df

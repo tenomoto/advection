@@ -1,4 +1,7 @@
 module polint_module
+  use kind_module, only : i4b, dp
+  implicit none
+  private
 
 ! polynomial interpolation
 ! Source: Numerical Recipies
@@ -6,10 +9,6 @@ module polint_module
 ! Author: Takeshi Enomoto
 ! History:
 ! 2007-11-13 translated from Pascal
-
-  use constant_module, only : i4b, dp
-  implicit none
-  private
 
   real(kind=dp), dimension(:), allocatable, private :: c, d, ytmp
   logical, private :: lytmpinit = .false.

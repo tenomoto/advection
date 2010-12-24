@@ -1,6 +1,8 @@
 module alf_module
-
 ! calculates normalised associated Legendre functions
+  use kind_module, only: i4b, dp
+  implicit none
+  private
 
 ! Source: Based on Swartztrauber (2003)
 ! Author: T. Enomoto
@@ -16,10 +18,6 @@ module alf_module
 !   TE 2003-12-02: Removed AFES dependent code
 !   TE 2003-05-30: Some comments are added.
 !   TE 2003-05-23: Created.
-
-  use constant_module, only: i4b, dp
-  implicit none
-  private
 
   real(kind=dp), public, dimension(:,:,:), allocatable :: pnm
 
@@ -73,7 +71,6 @@ contains
   end subroutine alf_calc_old
   
   subroutine alf_calc(lat,mmax)
-
     implicit none
 
     real(kind=dp), dimension(:), intent(in) :: lat

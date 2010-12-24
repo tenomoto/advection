@@ -1,8 +1,7 @@
 module fft_module
-
-  use constant_module, only: i4b, i8b, dp
+  use kind_module, only: i4b, i8b, dp
+  implicit none
   include "fftw3.f"
-! implicit none
   private
 
   integer(kind=i8b), private :: plan_forward, plan_backward

@@ -1,5 +1,5 @@
 module time_module
-  use constant_module, only: i4b, dp
+  use kind_module, only: i4b, dp
   implicit none
   private
 

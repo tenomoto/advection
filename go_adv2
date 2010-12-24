@@ -1,8 +1,9 @@
 #!/bin/sh
 ./adv << EOF > adv.log 2>&1
-&grid nlon=128  nlat=64 ntrunc=42 phi0="ccbel2"/
-&time nstep=800 hstep=40 deltat=0.00625d0 etf=0.00d0
- model="euler " imethod="sph   " imethoduv="bilin "/
-&semilag spectral=T fmono=F/
+&planet /
+&grid nlon=120  nlat=60 ntrunc=39 phi0="ghill " wind="sbody "/
+&time nstep=80 hstep=4 deltat=21600 etf=0.00d0
+ model="slag  " imethod="sph   " imethoduv="bilin "/
+&semilag spectral=T fmono=T conserve=F/
 &interpolate n=3/
 EOF

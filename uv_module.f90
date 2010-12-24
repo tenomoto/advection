@@ -1,5 +1,5 @@
 module uv_module
-  use constant_module, only: dp, i4b, pi
+  use kind_module, only: dp, i4b
   implicit none
   private
 
@@ -8,7 +8,8 @@ module uv_module
 contains
 
   subroutine uv_sbody(lon,lat,gu,gv)
-    use constant_module, only: d=>day_in_sec, deg2rad
+    use planet_module, only: d=>day_in_sec
+    use math_module, only: pi2=>math_pi2, deg2rad=>math_deg2rad
     implicit none
 
     real(kind=dp), dimension(:), intent(in) :: lon, lat
@@ -25,7 +26,7 @@ contains
 
     lon0 = x0*deg2rad
     lat0 = y0*deg2rad
-    omg = (2.0_dp*pi) / (period*d)
+    omg = pi2/(period*d)
     do j=1, ny
       do i=1, nx
         gu(i,j) = omg*(cos(lat(j))*sin(lat0)-cos(lon(i)-lon0)*sin(lat(j))*cos(lat0))
@@ -36,6 +37,7 @@ contains
   end subroutine uv_sbody
 
   subroutine uv_nodiv(t,lon,lat,gu,gv)
+    use math_module, only: pi=>math_pi, pi2=>math_pi2
     implicit none
 
     real(kind=dp), intent(in) :: t
@@ -50,13 +52,13 @@ contains
     nx = size(lon)
     ny = size(lat)
 
-    pt1 = pi/t1
+    pt1 = pi2/t1
     ptt1 = pt1*t
-    kcosptt1 = kappa*cos(ptt1)
+    kcosptt1 = kappa*cos(pi*t/t1)
     do j=1, ny
       do i=1, nx
-        lambda1 = lon(i) - 2.0_dp*ptt1
-        gu(i,j) = sin(lambda1)**2*sin(2.0_dp*lat(j))*kcosptt1 + 2.0_dp*pt1*cos(lat(j))
+        lambda1 = lon(i) - ptt1
+        gu(i,j) = sin(lambda1)**2*sin(2.0_dp*lat(j))*kcosptt1 + pt1*cos(lat(j))
         gv(i,j) = sin(2.0_dp*lambda1)*cos(lat(j))*kcosptt1
       end do
     end do

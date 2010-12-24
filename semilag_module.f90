@@ -1,18 +1,8 @@
 module semilag_module
 
-  use constant_module, only: i4b, dp, hour_in_sec, pi, a=>planet_radius
+  use kind_module, only: i4b, dp
   use grid_module, only: nlon, nlat, ntrunc, &
-    gu, gv, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr
-  use time_module, only: nstep, hstep, deltat, imethod
-  use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
-        legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
-  use upstream_module, only: find_points
-  use interpolate_module, only: interpolate_init, interpolate_clean, &
-                          interpolate_set, interpolate_setd, &
-                          interpolate_bilinear, interpolate_bicubic, &
-                          interpolate_polin2, interpolate_linpol, &
-                          interpolate_setdx, interpolate_spcher
-  use io_module, only: io_save
+    gu, gv, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr, wind, wgt
   private
   
   integer(kind=i4b), private :: nsave = 0, n = 3
@@ -24,7 +14,7 @@ module semilag_module
 
   character(len=6), dimension(7), parameter, private :: methods = &
     (/"bilin ", "polin2", "linpol", "fd    ", "sph   ", "fdy   ", "spcher"/)
-  logical, private :: spectral = .true., fmono = .false.
+  logical, private :: spectral = .true., fmono = .false., conserve = .false.
 
   private :: update
   public :: semilag_init, semilag_timeint, semilag_clean
@@ -32,11 +22,16 @@ module semilag_module
 contains
 
   subroutine semilag_init()
+    use time_module, only: hstep, deltat
+    use planet_module, only: a=>planet_radius
+    use interpolate_module, only: interpolate_init
+    use io_module, only: io_save
+    use legendre_transform_module, only: legendre_synthesis
     implicit none
 
     integer(kind=i4b) :: i,j
 
-    namelist /semilag/ spectral, fmono
+    namelist /semilag/ spectral, fmono, conserve
 
     read(unit=5, nml=semilag)
     write(unit=6, nml=semilag)
@@ -47,21 +42,18 @@ contains
              midlon(nlon,nlat),midlat(nlon,nlat),deplon(nlon,nlat),deplat(nlon,nlat))
     call interpolate_init(gphi)
 
-!    print *, "step=0 hour=0"
     print *, "step=0 t=0"
     print *, "Saving step=0"
     call legendre_synthesis(sphi_old,gphi_old)
     gphi = gphi_old
-!    print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
-!    print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
-    print *, "umax=", real(maxval(gu)), " umin=", real(minval(gu))
-    print *, "vmax=", real(maxval(gv)), " vmin=", real(minval(gv))
+    print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
+    print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
     call io_save(ifile, 1, gphi, "replace")
-    call io_save(ifile, 2, gu, "old")
-    call io_save(ifile, 3, gv, "old")
+    call io_save(ifile, 2, gu*a, "old")
+    call io_save(ifile, 3, gv*a, "old")
     call io_save(hfile, 1, gphi, "replace")
-    call io_save(hfile, 2, gu, "old")
-    call io_save(hfile, 3, gv, "old")
+    call io_save(hfile, 2, gu*a, "old")
+    call io_save(hfile, 3, gv*a, "old")
     nsave = 1
 
     do i=1, nlon
@@ -71,20 +63,20 @@ contains
       midlat(:,j) = latitudes(j)
     end do
 
-!    print *, "step=1", " hour=", real(deltat/hour_in_sec)
-    print *, "step=1", " t=", real(deltat)
-    call update(0.5d0*deltat)
+    print *, "step= 1", " t=", real(deltat)
+    call update(0.5_dp*deltat,0.5_dp*deltat)
     if (hstep==1) then
       call legendre_synthesis(sphi, gphi)
       call io_save(hfile, 3*nsave+1, gphi, "old")
-      call io_save(hfile, 3*nsave+2, gu, "old")
-      call io_save(hfile, 3*nsave+3, gv, "old")
+      call io_save(hfile, 3*nsave+2, gu*a, "old")
+      call io_save(hfile, 3*nsave+3, gv*a, "old")
       nsave = nsave + 1
     end if
 
   end subroutine semilag_init
 
   subroutine semilag_clean()
+    use interpolate_module, only: interpolate_clean
     implicit none
 
     deallocate(sphi1,gphi_old,gphi1,gphix,gphiy,gphixy,midlon,midlat,deplon,deplat)
@@ -93,16 +85,18 @@ contains
   end subroutine semilag_clean
 
   subroutine semilag_timeint()
+    use time_module, only: nstep, hstep, deltat
+    use legendre_transform_module, only: legendre_synthesis
+    use io_module, only: io_save
     implicit none
 
     integer(kind=i4b) :: i
 
-    do i=2, nstep+1
-!      print *, "step=", i, " hour=", real(i*deltat/hour_in_sec)
+    do i=2, nstep
       print *, "step=", i, " t=", real(i*deltat)
-      call update((i-1)*deltat)
-      if (mod(i-1,hstep)==0) then
-        print *, "Saving step=", i-1
+      call update((i-1)*deltat,deltat)
+      if (mod(i,hstep)==0) then
+        print *, "Saving step=", i
         if (spectral) then
           call legendre_synthesis(sphi, gphi)
         end if
@@ -115,22 +109,45 @@ contains
 
   end subroutine semilag_timeint
 
-  subroutine update(t)
-    use time_module, only: etf
-    use uv_module, only: uv_nodiv
+  subroutine update(t,dt)
+    use math_module, only: &
+      pi=>math_pi, pir=>math_pir, pih=>math_pih
+    use upstream_module, only: find_points
+    use time_module, only: etf, imethod, deltat
+    use uv_module, only: uv_sbody, uv_nodiv
+    use interpolate_module, only: &
+      interpolate_set, interpolate_setd, interpolate_setdx, &
+      interpolate_bilinear, interpolate_bicubic, interpolate_polin2, &
+      interpolate_linpol, interpolate_setdx, interpolate_spcher
+    use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
+        legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
     implicit none
 
-    real(kind=dp), intent(in) :: t
+    real(kind=dp), intent(in) :: t, dt
 
     integer(kind=i4b) :: i, j, m
     real(kind=dp) :: eps, dlonr
     real(kind=dp), dimension(nlon) :: gphitmp
 
-    call uv_nodiv(t,lon,latitudes,gu,gv)
-    call find_points(gu, gv, deltat, midlon, midlat, deplon, deplat)
+    select case(wind)
+!      case("sbody ")
+!        call uv_sbody(lon,latitudes,gu,gv)
+      case("nodiv ")
+        call uv_nodiv(t,lon,latitudes,gu,gv)
+    end select
+    call find_points(gu, gv, dt, midlon, midlat, deplon, deplat)
 
     if (spectral) then
       call legendre_synthesis(sphi_old,gphi_old)
+    end if
+
+    if (conserve) then
+      do j=1, nlat
+        gphi_old(:,j) = gphi_old(:,j)*wgt(j)
+      end do
+      if ((imethod=="sph   ").or.(imethod=="fdy   ").or.(imethod=="spcher")) then
+        call legendre_analysis(gphi_old,sphi_old)
+      end if
     end if
 
 ! calculate spectral derivatives
@@ -151,7 +168,7 @@ contains
 
     if (imethod=="fd    ") then
 ! d/dlon
-      dlonr = 0.25_dp*nlon/pi
+      dlonr = 0.25_dp*nlon*pir
       gphix(1,:) = dlonr * (gphi_old(2,:) - gphi_old(nlon,:))
       gphix(nlon,:) = dlonr * (gphi_old(1,:) - gphi_old(nlon-1,:))
       do i=2, nlon-1
@@ -160,15 +177,15 @@ contains
     end if
     if ((imethod=="fd    ").or.(imethod=="fdy   ")) then
 ! d/dphi
-      eps = 0.5_dp*pi-latitudes(1)
+      eps = pih-latitudes(1)
       gphitmp = cshift(gphi_old(:,1),nlon/2)
-      gphiy(:,1) = (gphitmp-gphi_old(:,2))/(0.5_dp*pi+eps-latitudes(2))
+      gphiy(:,1) = (gphitmp-gphi_old(:,2))/(pih+eps-latitudes(2))
       gphitmp = cshift(gphix(:,1),nlon/2)
-      gphixy(:,1) = (gphitmp-gphix(:,2))/(0.5_dp*pi+eps-latitudes(2))
+      gphixy(:,1) = (gphitmp-gphix(:,2))/(pih+eps-latitudes(2))
       gphitmp = cshift(gphi_old(:,nlat),nlon/2)
-      gphiy(:,nlat) = (gphitmp-gphi_old(:,nlat-1))/(-0.5_dp*pi-eps-latitudes(nlat-1))
+      gphiy(:,nlat) = (gphitmp-gphi_old(:,nlat-1))/(-pih-eps-latitudes(nlat-1))
       gphitmp = cshift(gphix(:,nlat),nlon/2)
-      gphixy(:,nlat) = (gphitmp-gphix(:,nlat-1))/(-0.5_dp*pi-eps-latitudes(nlat-1))
+      gphixy(:,nlat) = (gphitmp-gphix(:,nlat-1))/(-pih-eps-latitudes(nlat-1))
       do j=2, nlat-1
         gphiy(:,j) = (gphi_old(:,j+1)-gphi_old(:,j-1))/(latitudes(j+1)-latitudes(j-1))
         gphixy(:,j) = (gphix(:,j+1)-gphix(:,j-1))/(latitudes(j+1)-latitudes(j-1))
@@ -200,6 +217,12 @@ contains
         end select
       end do
     end do
+
+    if (conserve) then
+      do j=1, nlat
+        gphi1(:,j) = gphi1(:,j)/wgt(j)
+      end do
+    end if
 
 ! time filter
 ! spectral

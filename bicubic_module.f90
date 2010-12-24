@@ -1,15 +1,15 @@
 module bicubic_module
-
 ! bicubic interpolation
+  use kind_module, only : i4b, dp
+  implicit none
+  private
+
 !  call bcucof to calculate coefficents
 !  function bcuint returns the interpolated value
 ! Source: Numerical Recipes
 
 ! Author: T. Enomoto
 ! History: 3 March 2004
-
-  use constant_module, only : i4b, dp
-  private
 
   real(kind=dp), dimension(4,4), private :: c
   public :: bcucof, bcuint, bcuintp

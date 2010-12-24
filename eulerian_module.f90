@@ -1,12 +1,15 @@
 module eulerian_module
-
-  use constant_module, only: i4b, dp, a=>planet_radius, hour_in_sec
-  use grid_module, only: nlon, nlat, ntrunc, &
+  use kind_module, only: i4b, dp
+  use planet_module, only: a=>planet_radius
+  use grid_module, only: &
+    nlon, nlat, ntrunc, &
     gu, gv, gphi, sphi, sphi_old, lon, lat, coslatr
   use time_module, only: nstep, hstep, deltat
-  use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
-                                       legendre_synthesis_dlon, legendre_synthesis_dlat
+  use legendre_transform_module, only: &
+    legendre_analysis, legendre_synthesis, &
+    legendre_synthesis_dlon, legendre_synthesis_dlat
   use io_module, only: io_save
+  implicit none
   private
 
   real(kind=dp), dimension(:,:), allocatable, private :: dgphi
@@ -28,7 +31,6 @@ contains
 
     allocate(dgphi(nlon,nlat), sphi1(0:ntrunc,0:ntrunc))
 
-!    print *, "step=0 hour=0"
     print *, "step=0 t=0"
     print *, "Saving step=0"
     call io_save(ifile, 1, gphi, "replace")
@@ -38,10 +40,8 @@ contains
     call io_save(hfile, 2, gu, "old")
     call io_save(hfile, 3, gv, "old")
     nsave = 1
-!    print *, "step=1/2", " hour=", real(0.5*deltat/hour_in_sec)
     print *, "step=1/2", " t=", real(0.5*deltat)
     call update(0.0d0*deltat,0.5d0*deltat)
-!    print *, "step=1", " hour=", real(deltat/hour_in_sec)
     print *, "step=1", " t=", real(deltat)
     call update(0.5d0*deltat,deltat)
     if (hstep==1) then
@@ -64,12 +64,11 @@ contains
 
     integer(kind=i4b) :: i, j
 
-    do i=2, nstep+1
-!      print *, "step=", i, " hour=", real(i*deltat/hour_in_sec)
+    do i=2, nstep
       print *, "step=", i, " t=", real(i*deltat)
       call update((i-1)*deltat,2.0d0*deltat)
-      if (mod(i-1,hstep)==0) then
-        print *, "Saving step=", i-1
+      if (mod(i,hstep)==0) then
+        print *, "Saving step=", i
         call io_save(hfile, 3*nsave+1, gphi, "old")
         call io_save(hfile, 3*nsave+2, gu, "old")
         call io_save(hfile, 3*nsave+3, gv, "old")

@@ -1,16 +1,15 @@
 module cubicspline_module
-
 ! Cubic spline interpolation
+  use kind_module, only: i4b, dp
+  implicit none
+  private
+
 ! Source: Wikipedia, www.cubic.org
 
 ! Author: Takeshi Enomoto
 
 ! History:
 ! 2007-11-21: First version
-
-  use constant_module, only : i4b, dp
-  implicit none
-  private
 
   integer(kind=i4b), parameter, public :: &
     cubicspline_hermite = 1, cubicspline_bezier = 2

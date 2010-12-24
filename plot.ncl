@@ -45,8 +45,8 @@ begin
   v = x
 ; fname1="semi-lag/history_L1e4km_bicubic.dat"
  fname1 = "history.dat"
- u = fbindirread(fname1, 1, (/ny, nx/), "double")*a
- v = fbindirread(fname1, 2, (/ny, nx/), "double")*a
+ u = fbindirread(fname1, 1, (/ny, nx/), "double")
+ v = fbindirread(fname1, 2, (/ny, nx/), "double")
 
 ; wks = gsn_open_wks(dev, "history_ps_L"+run)
   wks = gsn_open_wks(dev, fname)
@@ -67,12 +67,10 @@ begin
 ; res@tiMainString = dir+" "+run
   res@tiMainString = fname
   rese = res
-;  res@cnLevelSelectionMode = "ManualLevels"
-;  res@cnLevelSpacingF = 10.
-;  res@cnMinLevelValF = 10.
-;  res@cnMaxLevelValF = 90.
-  res@cnLevelSelectionMode = "ExplicitLevels"
-  res@cnLevels = ispan(10,90,10)*0.01
+  res@cnLevelSelectionMode = "ManualLevels"
+  res@cnLevelSpacingF = 10.
+  res@cnMinLevelValF = 10.
+  res@cnMaxLevelValF = 90.
   res@cnMonoLineThickness = False
   res@cnLineThicknesses = (/1.,2.,1.,2.,1.,2.,1.,2.,1.,2.,1.,2./)
 

@@ -1,18 +1,8 @@
 module nisl_module
 
-  use constant_module, only: i4b, dp, hour_in_sec, pi, a=>planet_radius
+  use kind_module, only: i4b, dp
   use grid_module, only: nlon, nlat, ntrunc, &
     gu, gv, gphi, sphi_old, sphi, longitudes=>lon, latitudes=>lat, coslatr
-  use time_module, only: nstep, hstep, deltat, imethod, imethoduv
-  use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
-        legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
-  use upstream_module, only: find_points
-  use interpolate_module, only: interpolate_init, interpolate_clean, &
-                                interpolate_set, interpolate_setuv, &
-                                interpolate_bilinear, interpolate_bilinearuv, &
-                                interpolate_polin2, interpolate_polin2uv
-  use io_module, only: io_save
-  use sphere_module, only: xyz2uv, lonlat2xyz, lat2j
   private
   
   integer(kind=i4b), private :: nsave = 0
@@ -30,6 +20,11 @@ module nisl_module
 contains
 
   subroutine nisl_init()
+    use time_module, only: hstep, deltat
+    use planet_module, only: a=>planet_radius
+    use interpolate_module, only: interpolate_init
+    use legendre_transform_module, only: legendre_synthesis
+    use io_module, only: io_save
     implicit none
 
     integer(kind=i4b) :: i,j
@@ -41,10 +36,9 @@ contains
              gum(nlon,nlat),gvm(nlon,nlat))
     call interpolate_init(gphi)
 
-!    print *, "step=0 hour=0"
     print *, "step=0 t=0"
-    print *, "umax=", real(maxval(gu)), " umin=", real(minval(gu))
-    print *, "vmax=", real(maxval(gv)), " vmin=", real(minval(gv))
+    print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
+    print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
     call io_save(ifile, 1, gphi, "replace")
     call io_save(ifile, 2, gu, "old")
     call io_save(ifile, 3, gv, "old")
@@ -62,7 +56,6 @@ contains
 
     print *, "step=1/2", " t=", real(0.5d0*deltat)
     call update(0.25d0*deltat,0.5*deltat)
-!    print *, "step=1", " hour=", real(deltat/hour_in_sec)
     print *, "step=1", " t=", real(deltat)
     call update(0.5d0*deltat,deltat)
     if (hstep==1) then
@@ -76,6 +69,7 @@ contains
   end subroutine nisl_init
 
   subroutine nisl_clean()
+    use interpolate_module, only: interpolate_clean
     implicit none
 
     deallocate(sphi1,gphi_old,gphim,dgphi,dgphim,gum,gvm, &
@@ -85,16 +79,18 @@ contains
   end subroutine nisl_clean
 
   subroutine nisl_timeint()
+    use time_module, only: nstep, hstep, deltat
+    use legendre_transform_module, only: legendre_synthesis
+    use io_module, only: io_save
     implicit none
 
     integer(kind=i4b) :: i
 
-    do i=2, nstep+1
-!      print *, "step=", i, " hour=", real(i*deltat/hour_in_sec)
+    do i=2, nstep
       print *, "step=", i, " t=", real(i*deltat)
-      call update((i-1)*deltat,2.0_dp*deltat)
-      if (mod(i-1,hstep)==0) then
-        print *, "Saving step=", i-1
+      call update((i-1)*deltat,deltat)
+      if (mod(i,hstep)==0) then
+        print *, "Saving step=", i
         call legendre_synthesis(sphi, gphi)
         call io_save(hfile, 3*nsave+1, gphi, "old")
         call io_save(hfile, 3*nsave+2, gu, "old")
@@ -106,8 +102,13 @@ contains
   end subroutine nisl_timeint
 
   subroutine update(t,dt)
-    use time_module, only: etf
+    use time_module, only: etf, imethod
     use uv_module, only: uv_nodiv
+    use upstream_module, only: find_points
+    use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
+        legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
+    use interpolate_module, only: &
+      interpolate_set, interpolate_bilinear, interpolate_polin2
     implicit none
 
     integer(kind=i4b) :: i, j, m
@@ -165,15 +166,19 @@ contains
   end subroutine update
 
   subroutine calc_niuv(dt)
+    use math_module, only: pir=>math_pir, pi2=>math_pi2
+    use time_module, only: imethoduv
+    use sphere_module, only: xyz2uv, lonlat2xyz
+    use interpolate_module, only: &
+       interpolate_setuv, interpolate_bilinearuv, interpolate_polin2uv
     implicit none
 
     real(kind=dp), intent(in) :: dt
 
     integer(kind=i4b) :: i,j,ii
     real(kind=dp) :: xg, yg, zg, xr, yr, zr, xm, ym, zm, xd, yd, zd, &
-      lon, lat, lonr, latr, lonm, latm, u, v, pir, dlonr, b
+      lon, lat, lonr, latr, lonm, latm, u, v, dlonr, b
 
-    pir = 1.0_dp/pi
     dlonr = 0.5_dp*nlon*pir
     call interpolate_setuv(gu,gv)
     do j=1, nlat
@@ -197,7 +202,7 @@ contains
         xm = b*(xg + xr)
         ym = b*(yg + yr)
         zm = b*(zg + zr)
-        midlon(i,j) = modulo(atan2(ym,xm)+2.0_dp*pi,2.0_dp*pi)
+        midlon(i,j) = modulo(atan2(ym,xm)+pi2,pi2)
         midlat(i,j) = asin(zm)
 !       print *, real(lon*180/pi), real(midlon(i,j)*180/pi), real(lonr*180/pi), &
 !         real(lat*180/pi), real(midlat(i,j)*180/pi), real(latr*180/pi)

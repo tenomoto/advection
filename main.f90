@@ -1,7 +1,7 @@
 !! Ritchie (1987) advection test
 program advection
 
-  use constant_module, only: i4b
+  use planet_module, only: planet_init
   use grid_module, only: grid_init, grid_clean
   use time_module, only: time_init, model
   use eulerian_module, only: eulerian_init, eulerian_timeint, eulerian_clean
@@ -10,6 +10,7 @@ program advection
 
   implicit none
 
+  call planet_init()
   call grid_init()
   call time_init()
   select case(model)

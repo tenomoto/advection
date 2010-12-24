@@ -1,6 +1,7 @@
 module sphere_module
 ! utility for a spherical topology
-  use constant_module, only: i4b, dp, pi
+  use kind_module, only: i4b, dp
+  implicit none
   private
 
   public :: lonlat2xyz, uv2xyz, xyz2uv, lon2i, lat2j, orthodrome
@@ -32,12 +33,13 @@ contains
   end subroutine uv2xyz
 
   subroutine xyz2uv(xd, yd, zd, lon, lat, u, v)
+    use math_module, only: pih=>math_pih
     implicit none
 
     real(kind=dp), intent(in) :: xd, yd, zd, lon, lat
     real(kind=dp), intent(out) :: u, v
 
-    if (abs(lat) == pi/2) then ! lon = 0 is chosen
+    if (abs(lat) == pih) then ! lon = 0 is chosen
       u =  yd
       v = -xd ! omitted division by sin(pi/2) = 1
     else
@@ -50,6 +52,7 @@ contains
   function lon2i(lon,nx) result(i)
   ! returns the closest longitudinal point i, not exceeding lon
   ! 1 <= return value <= nx
+    use math_module, only: pi2=>math_pi2
     implicit none
 
     real(kind=dp), intent(in) :: lon
@@ -58,7 +61,7 @@ contains
     integer(kind=i4b) :: i
     real(kind=dp) :: dlonr
 
-    dlonr = nx/(2.0_dp*pi)
+    dlonr = nx/(pi2)
     i = floor(lon*dlonr+1.0_dp) ! lon = 2pi/nx*(i-1)=dlon*(i-1)
 
   end function lon2i
@@ -67,6 +70,7 @@ contains
   ! returns the closest Gaussian point j using approximation
   ! lat varies from NP to SP
   ! 1 <= return value <= ny
+    use math_module, only: pi=>math_pi
     implicit none
 
     real(kind=dp), intent(in) :: lat

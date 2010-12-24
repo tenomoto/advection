@@ -1,6 +1,10 @@
 module interpolate_module
-
 ! interpolate in a stencil
+  use kind_module, only: i4b, dp
+  use grid_module, only: latitudes=>lat, coslat, wgt
+  use sphere_module, only: lon2i, lat2j
+  implicit none
+  private
 
 ! References:
 !   - Ritchie (1987) describes selection of points across the pole
@@ -11,11 +15,6 @@ module interpolate_module
 ! 2007-11-14 simplified stencil finding
 ! 2004-09-10 some simplification
 ! 2004-03
-
-  use constant_module, only: i4b, dp, pi
-  use grid_module, only: latitudes=>lat, coslat
-  use sphere_module, only: lon2i, lat2j
-  private
 
   integer(kind=i4b), private :: nx, ny, n=3, nh, nx1, nx2, ny1, ny2 
   integer(kind=i4b), dimension(4), private :: is, js
@@ -35,6 +34,7 @@ module interpolate_module
 contains
 
   subroutine interpolate_init(f)
+    use math_module, only: pi2=>math_pi2, pih=>math_pih
     implicit none
 
     real(kind=dp), dimension(:,:) :: f
@@ -58,14 +58,14 @@ contains
              ffx(nx1:nx2,ny1:ny2), ffy(nx1:nx2,ny1:ny2), ffxy(nx1:nx2,ny1:ny2), &
              fu(nx1:nx2,ny1:ny2),fv(nx1:nx2,ny1:ny2))
 
-    dlon = 2.0_dp*pi/nx
+    dlon = pi2/nx
     do i=nx1, nx2
       lonf(i) = dlon*(i-1)
     end do
     latf(1:ny) = latitudes
     do j=1, nh+1
-      latf(1-j)   = 0.5_dp*pi + (0.5_dp*pi - latitudes(j))
-      latf(ny+j)   = -0.5_dp*pi + (-0.5_dp*pi - latitudes(ny-j+1))
+      latf(1-j)   = pih + (pih - latitudes(j))
+      latf(ny+j)   = -pih + (-pih - latitudes(ny-j+1))
     end do
 
   end subroutine interpolate_init
@@ -121,9 +121,9 @@ contains
 !    if (abs(lat)<latf(1)) then
       fiu = (1.0_dp-u)*((1.0_dp-t)*fsu(1)+t*fsu(2)) + u*(t*fsu(3)+(1.0_dp-t)*fsu(4))
       fiv = (1.0_dp-u)*((1.0_dp-t)*fsv(1)+t*fsv(2)) + u*(t*fsv(3)+(1.0_dp-t)*fsv(4))
-      coslatr = 1.0_dp/cos(lat)
-      fiu = fiu*coslatr
-      fiv = fiv*coslatr
+!      coslatr = 1.0_dp/cos(lat)
+!      fiu = fiu*coslatr
+!      fiv = fiv*coslatr
 !    else
 !      fiu = (1.0_dp-u)*((1.0_dp-t)*fsu(1)+t*fsu(2)) + u*(t*fsu(4)+(1.0_dp-t)*fsu(3))
 !      fiv = (1.0_dp-u)*((1.0_dp-t)*fsv(1)+t*fsv(2)) + u*(t*fsv(4)+(1.0_dp-t)*fsv(3))
@@ -224,9 +224,9 @@ contains
       fiv = min(fiv,maxval(fv(i0:i0+1,j0:j0+1)))
       fiv = max(fiv,minval(fv(i0:i0+1,j0:j0+1)))
     end if
-    coslatr = 1.0_dp/cos(lat)
-    fiu = fiu * coslatr
-    fiv = fiv * coslatr
+!    coslatr = 1.0_dp/cos(lat)
+!    fiu = fiu * coslatr
+!    fiv = fiv * coslatr
 
   end subroutine interpolate_polin2uv
 
@@ -333,8 +333,8 @@ contains
     integer(kind=i4b) :: i, j
 
     do j=1, ny
-      fu(1:nx,j) = gu(:,j)*coslat(j)
-      fv(1:nx,j) = gv(:,j)*coslat(j)
+      fu(1:nx,j) = gu(:,j)!*coslat(j)
+      fv(1:nx,j) = gv(:,j)!*coslat(j)
     end do
 ! direction of u, v is reversed beyond poles
     do j=1, nh+1
