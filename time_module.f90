@@ -9,6 +9,8 @@ module time_module
   character(len=6), public :: &
     model = "euler ", imethod = "linpol ", imethoduv = "bilin "
 
+  character(len=256), public :: ifile="init.dat", hfile="hist.dat"
+
   public :: time_init
 
 contains
@@ -16,7 +18,8 @@ contains
   subroutine time_init()
     implicit none
 
-    namelist /time/ nstep, hstep, model, deltat, etf, imethod, imethoduv
+    namelist /time/ nstep, hstep, model, deltat, etf, &
+      imethod, imethoduv, ifile, hfile
 
     read(unit=5, nml=time)
     write(unit=6, nml=time)

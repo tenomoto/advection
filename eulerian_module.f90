@@ -4,7 +4,7 @@ module eulerian_module
   use grid_module, only: &
     nlon, nlat, ntrunc, &
     gu, gv, gphi, sphi, sphi_old, lon, lat, coslatr
-  use time_module, only: nstep, hstep, deltat
+  use time_module, only: nstep, hstep, deltat, ifile, hfile
   use legendre_transform_module, only: &
     legendre_analysis, legendre_synthesis, &
     legendre_synthesis_dlon, legendre_synthesis_dlat
@@ -16,8 +16,6 @@ module eulerian_module
 
   integer(kind=i4b), private :: nsave = 0
   complex(kind=dp), dimension(:,:), allocatable, private :: sphi1
-  character(len=*), parameter, private :: &
-    ifile = "init.dat", hfile = "history.dat"
 
   private :: update
   public :: eulerian_init, eulerian_timeint, eulerian_clean

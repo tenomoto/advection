@@ -3,9 +3,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 
 begin
 
-  ntrunc = 42
-  nx = 128
-  ny =  64
+  ntrunc = 39
+  nx = 120
+  ny =  60
   nt =  20 
   dt = 5./nt
   tstep =1 

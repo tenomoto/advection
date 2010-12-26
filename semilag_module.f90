@@ -9,8 +9,6 @@ module semilag_module
   real(kind=dp), dimension(:,:), allocatable, private :: &
     gphi_old, gphi1, gphix, gphiy, gphixy, midlon, midlat, deplon, deplat
   complex(kind=dp), dimension(:,:), allocatable, private :: sphi1
-  character(len=*), parameter, private :: &
-    ifile = "init.dat", hfile = "history.dat"
 
   character(len=6), dimension(7), parameter, private :: methods = &
     (/"bilin ", "polin2", "linpol", "fd    ", "sph   ", "fdy   ", "spcher"/)
@@ -22,7 +20,7 @@ module semilag_module
 contains
 
   subroutine semilag_init()
-    use time_module, only: hstep, deltat
+    use time_module, only: hstep, deltat, ifile, hfile
     use planet_module, only: a=>planet_radius
     use interpolate_module, only: interpolate_init
     use io_module, only: io_save
@@ -85,7 +83,7 @@ contains
   end subroutine semilag_clean
 
   subroutine semilag_timeint()
-    use time_module, only: nstep, hstep, deltat
+    use time_module, only: nstep, hstep, deltat, hfile
     use legendre_transform_module, only: legendre_synthesis
     use io_module, only: io_save
     implicit none
@@ -143,7 +141,7 @@ contains
 
     if (conserve) then
       do j=1, nlat
-        gphi_old(:,j) = gphi_old(:,j)*wgt(j)
+        gphi_old(:,j) = gphi_old(:,j)*wgt(j)*coslatr(j)
       end do
       if ((imethod=="sph   ").or.(imethod=="fdy   ").or.(imethod=="spcher")) then
         call legendre_analysis(gphi_old,sphi_old)
@@ -220,7 +218,7 @@ contains
 
     if (conserve) then
       do j=1, nlat
-        gphi1(:,j) = gphi1(:,j)/wgt(j)
+        gphi1(:,j) = gphi1(:,j)/(wgt(j)*coslatr(j))
       end do
     end if
 

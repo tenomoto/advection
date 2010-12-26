@@ -11,8 +11,6 @@ module nisl_module
     gphi_old, dgphi, dgphim, gphim,&
     midlon, midlat, deplon, deplat, gum, gvm
   complex(kind=dp), dimension(:,:), allocatable, private :: sphi1
-  character(len=*), parameter, private :: &
-    ifile = "init.dat", hfile = "history.dat"
 
   private :: update
   public :: nisl_init, nisl_timeint, nisl_clean
@@ -20,7 +18,7 @@ module nisl_module
 contains
 
   subroutine nisl_init()
-    use time_module, only: hstep, deltat
+    use time_module, only: hstep, deltat, ifile, hfile
     use planet_module, only: a=>planet_radius
     use interpolate_module, only: interpolate_init
     use legendre_transform_module, only: legendre_synthesis
@@ -79,7 +77,7 @@ contains
   end subroutine nisl_clean
 
   subroutine nisl_timeint()
-    use time_module, only: nstep, hstep, deltat
+    use time_module, only: nstep, hstep, deltat, hfile
     use legendre_transform_module, only: legendre_synthesis
     use io_module, only: io_save
     implicit none

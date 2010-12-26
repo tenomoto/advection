@@ -1,9 +1,9 @@
 #!/bin/sh
 ./adv << EOF > adv.log 2>&1
-&planet planet_radius=1.0d0/
-&grid nlon=128  nlat=64 ntrunc=42 phi0="scyli2" wind="nodiv "/
-&time nstep=100 hstep=5 deltat=0.05d0 etf=0.00d0
+&planet /
+&grid nlon=120  nlat=60 ntrunc=39 phi0="ghill " wind="sbody "/
+&time nstep=80 hstep=4 deltat=21600 etf=0.00d0
  model="slag  " imethod="sph   " imethoduv="bilin "/
-&semilag spectral=T fmono=T conserve=T/
+&semilag spectral=T fmono=F conserve=T/
 &interpolate n=3/
 EOF
