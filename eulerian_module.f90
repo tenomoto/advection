@@ -29,11 +29,13 @@ contains
 
     allocate(dgphi(nlon,nlat), sphi1(0:ntrunc,0:ntrunc))
 
-    print *, "step=0 t=0"
-    print *, "Saving step=0"
+    print *, "Saving initial value"
     call io_save(ifile, 1, gphi, "replace")
     call io_save(ifile, 2, gu, "old")
     call io_save(ifile, 3, gv, "old")
+    call legendre_synthesis(sphi,gphi)
+    print *, "step=0 t=0"
+    print *, "Saving step=0"
     call io_save(hfile, 1, gphi, "replace")
     call io_save(hfile, 2, gu, "old")
     call io_save(hfile, 3, gv, "old")

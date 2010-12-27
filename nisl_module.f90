@@ -34,12 +34,16 @@ contains
              gum(nlon,nlat),gvm(nlon,nlat))
     call interpolate_init(gphi)
 
-    print *, "step=0 t=0"
-    print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
-    print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
+    print *, "Saving initial value"
     call io_save(ifile, 1, gphi, "replace")
     call io_save(ifile, 2, gu, "old")
     call io_save(ifile, 3, gv, "old")
+    call legendre_synthesis(sphi_old,gphi_old)
+    gphi = gphi_old
+    print *, "step=0 t=0"
+    print *, "Saving step=0"
+    print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
+    print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
     call io_save(hfile, 1, gphi, "replace")
     call io_save(hfile, 2, gu, "old")
     call io_save(hfile, 3, gv, "old")

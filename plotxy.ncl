@@ -23,9 +23,9 @@ begin
 ; cmin = -3
 ; cmax =  3
 
-; fname = dir+"/"+"history_L"+run+".dat"
-; fname = "../history.dat"
-  fname = "history.dat"
+; fname = dir+"/"+"hist_L"+run+".dat"
+; fname = "../hist.dat"
+  fname = "hist.dat"
   a = 6.371e6
 
   lon = fspan(0, 360.-360./nx, nx)
