@@ -20,7 +20,7 @@ contains
     use planet_module, only: d=>day_in_sec
     implicit none
 
-    real(kind=dp) :: tau
+    real(kind=dp) :: tau = 0.0_dp
 
     namelist /time/ nstep, hstep, model, deltat, etf, tau, &
       imethod, imethoduv, ifile, hfile

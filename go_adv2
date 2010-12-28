@@ -1,6 +1,6 @@
 #!/bin/sh
 ./adv << EOF > adv.log 2>&1
-&planet planet_radius=1.0d0/
+&planet planet_radius=1.0d0 day_in_sec=1.0d0/
 &grid nlon=120  nlat=60 ntrunc=39 phi0="ghill2" wind="nodiv"/
 &time nstep=60 hstep=3 deltat=0.0833333333333333 etf=0.00d0
  model="slag" imethod="sph" imethoduv="bilin"/
