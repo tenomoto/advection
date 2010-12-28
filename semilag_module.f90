@@ -7,8 +7,7 @@ module semilag_module
   
   integer(kind=i4b), private :: nsave = 0, n = 3
   real(kind=dp), dimension(:,:), allocatable, private :: &
-    gphi_old, gphi1, gphix, gphiy, gphixy, midlon, midlat, deplon, deplat
-  complex(kind=dp), dimension(:,:), allocatable, private :: sphi1
+    gphi_old, gphix, gphiy, gphixy, midlon, midlat, deplon, deplat
 
   character(len=6), dimension(7), parameter, private :: methods = &
     (/"bilin ", "polin2", "linpol", "fd    ", "sph   ", "fdy   ", "spcher"/)
@@ -34,9 +33,7 @@ contains
     read(unit=5, nml=semilag)
     write(unit=6, nml=semilag)
 
-    allocate(sphi1(0:ntrunc,0:ntrunc), &
-             gphi_old(nlon,nlat),gphi1(nlon,nlat), &
-             gphix(nlon,nlat),gphiy(nlon,nlat),gphixy(nlon,nlat), &
+    allocate(gphi_old(nlon,nlat), gphix(nlon,nlat),gphiy(nlon,nlat),gphixy(nlon,nlat), &
              midlon(nlon,nlat),midlat(nlon,nlat),deplon(nlon,nlat),deplat(nlon,nlat))
     call interpolate_init(gphi)
 
@@ -62,23 +59,13 @@ contains
       midlat(:,j) = latitudes(j)
     end do
 
-    print *, "step= 1", " t=", real(deltat)
-    call update(0.5_dp*deltat,0.5_dp*deltat)
-    if (hstep==1) then
-      call legendre_synthesis(sphi, gphi)
-      call io_save(hfile, 3*nsave+1, gphi, "old")
-      call io_save(hfile, 3*nsave+2, gu*a, "old")
-      call io_save(hfile, 3*nsave+3, gv*a, "old")
-      nsave = nsave + 1
-    end if
-
   end subroutine semilag_init
 
   subroutine semilag_clean()
     use interpolate_module, only: interpolate_clean
     implicit none
 
-    deallocate(sphi1,gphi_old,gphi1,gphix,gphiy,gphixy,midlon,midlat,deplon,deplat)
+    deallocate(gphi_old,gphix,gphiy,gphixy,midlon,midlat,deplon,deplat)
     call interpolate_clean()
 
   end subroutine semilag_clean
@@ -91,9 +78,9 @@ contains
 
     integer(kind=i4b) :: i
 
-    do i=2, nstep
+    do i=1, nstep
       print *, "step=", i, " t=", real(i*deltat)
-      call update((i-1)*deltat,deltat)
+      call update((i-0.5d0)*deltat,0.5_dp*deltat)
       if (mod(i,hstep)==0) then
         print *, "Saving step=", i
         if (spectral) then
@@ -204,38 +191,32 @@ contains
       do i=1, nlon
         select case (imethod)
           case ("bilin ") ! monotonicity is guranteed
-            call interpolate_bilinear(deplon(i,j), deplat(i,j), gphi1(i,j))
+            call interpolate_bilinear(deplon(i,j), deplat(i,j), gphi(i,j))
           case ("fd    ", "sph   ", "fdy   ")
-            call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=fmono)
+            call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi(i,j), monotonic=fmono)
           case ("polin2")
-            call interpolate_polin2(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=fmono)
+            call interpolate_polin2(deplon(i,j), deplat(i,j), gphi(i,j), monotonic=fmono)
           case ("linpol")
-            call interpolate_linpol(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=fmono)
+            call interpolate_linpol(deplon(i,j), deplat(i,j), gphi(i,j), monotonic=fmono)
           case ("spcher")
-            call interpolate_spcher(deplon(i,j), deplat(i,j), gphi1(i,j), monotonic=fmono)
+            call interpolate_spcher(deplon(i,j), deplat(i,j), gphi(i,j), monotonic=fmono)
         end select
       end do
     end do
 
     if (conserve) then
       do j=1, nlat
-        gphi1(:,j) = gphi1(:,j)/(wgt(j)*coslatr(j))
+        gphi(:,j) = gphi(:,j)/(wgt(j)*coslatr(j))
       end do
     end if
 
-! time filter
 ! spectral
     if (spectral) then
-      call legendre_analysis(gphi1, sphi1)
-      do m=0, ntrunc
-          sphi_old(m:ntrunc,m) = sphi(m:ntrunc,m) + &
-            etf * (sphi_old(m:ntrunc,m)-2.0_dp*sphi(m:ntrunc,m)+sphi1(m:ntrunc,m))
-      end do
-      sphi = sphi1
+      call legendre_analysis(gphi,sphi)
+      sphi_old(:,:) = sphi(:,:)
     else
 ! grid
-      gphi_old = gphi + etf * (gphi_old-2.0_dp*gphi+gphi1)
-      gphi = gphi1
+      gphi_old(:,:) = gphi(:,:)
     end if
 
   end subroutine update
