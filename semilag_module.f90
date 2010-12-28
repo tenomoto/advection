@@ -80,7 +80,7 @@ contains
 
     do i=1, nstep
       print *, "step=", i, " t=", real(i*deltat)
-      call update((i-0.5d0)*deltat,0.5_dp*deltat)
+      call update((i-0.5d0)*deltat,deltat)
       if (mod(i,hstep)==0) then
         print *, "Saving step=", i
         if (spectral) then
@@ -99,7 +99,7 @@ contains
     use math_module, only: &
       pi=>math_pi, pir=>math_pir, pih=>math_pih
     use upstream_module, only: find_points
-    use time_module, only: etf, imethod, deltat
+    use time_module, only: kappa, imethod, deltat
     use uv_module, only: uv_sbody, uv_nodiv
     use interpolate_module, only: &
       interpolate_set, interpolate_setd, interpolate_setdx, &
@@ -112,7 +112,7 @@ contains
     real(kind=dp), intent(in) :: t, dt
 
     integer(kind=i4b) :: i, j, m
-    real(kind=dp) :: eps, dlonr
+    real(kind=dp) :: eps, dlonr, knt
     real(kind=dp), dimension(nlon) :: gphitmp
 
     select case(wind)
@@ -121,7 +121,7 @@ contains
       case("nodiv ")
         call uv_nodiv(t,lon,latitudes,gu,gv)
     end select
-    call find_points(gu, gv, dt, midlon, midlat, deplon, deplat)
+    call find_points(gu, gv, 0.5_dp*dt, midlon, midlat, deplon, deplat)
 
     if (spectral) then
       call legendre_synthesis(sphi_old,gphi_old)
@@ -213,7 +213,12 @@ contains
 ! spectral
     if (spectral) then
       call legendre_analysis(gphi,sphi)
-      sphi_old(:,:) = sphi(:,:)
+      do n=1, ntrunc
+        knt = kappa*dt*(n*(n+1.0_dp))**2
+        do m=0, n
+          sphi_old(n,m) = (1.0_dp-knt)*sphi(n,m)
+        end do
+      end do
     else
 ! grid
       gphi_old(:,:) = gphi(:,:)

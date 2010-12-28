@@ -26,6 +26,7 @@ $(TARGET) : $(OBJ)
 
 math_module.o: kind_module.o
 planet_module.o: kind_module.o
+time_module.o: kind_module.o grid_module.o planet_module.o
 fft_module.o : kind_module.o
 glatwgt_module.o : kind_module.o math_module.o
 alf_module.o : kind_module.o

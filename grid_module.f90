@@ -61,7 +61,11 @@ contains
         stop
     end select 
     call legendre_analysis(gphi, sphi)
-    sphi_old = sphi
+    do m=0, ntrunc
+      do n=m, ntrunc
+        sphi_old(n,m) = sphi(n,m)
+      end do
+    end do
     print *, "first few elements of sphi"
     do m=0, 5
       do n=m, 5

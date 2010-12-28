@@ -79,12 +79,13 @@ contains
   end subroutine eulerian_timeint
 
   subroutine update(t,dt)
-    use time_module, only: etf
+    use time_module, only: etf, kappa
     use uv_module, only: uv_nodiv
     implicit none
 
     real(kind=dp), intent(in) :: t, dt
 
+    real(kind=dp) :: knt
     integer(kind=i4b) :: i, j, m, n
 
     call uv_nodiv(t,lon,lat,gu,gv)
@@ -102,13 +103,24 @@ contains
     end do
     gphi = gphi - dt*gv*dgphi
     call legendre_analysis(gphi, sphi1)
+! dissipation
+    do n=1, ntrunc
+      knt = kappa*dt*(n*(n+1.0_dp))**2
+      do m=0, n
+        sphi1(n,m) = (1.0_dp-knt)*sphi1(n,m)
+      end do
+    end do
 ! update
     do m=0, ntrunc
         sphi_old(m:ntrunc,m) = sphi(m:ntrunc,m) + &
           etf * (sphi_old(m:ntrunc,m)-2.0_dp*sphi(m:ntrunc,m)+sphi1(m:ntrunc,m))
     end do
-    sphi = sphi1
-  
+    do m=0, ntrunc
+      do n=m, ntrunc
+        sphi(n,m) = sphi1(n,m)
+      end do
+    end do
+
   end subroutine update
 
 end module eulerian_module
