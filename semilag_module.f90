@@ -5,7 +5,8 @@ module semilag_module
     gu, gv, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr, wind, wgt
   private
   
-  integer(kind=i4b), private :: nsave = 0, n = 3
+  integer(kind=i4b), private :: nsave = 0!, n = 3
+  real(kind=dp), dimension(2) :: minmax = 0.0_dp
   real(kind=dp), dimension(:,:), allocatable, private :: &
     gphi_old, gphix, gphiy, gphixy, midlon, midlat, deplon, deplat
 
@@ -41,8 +42,11 @@ contains
     call io_save(ifile, 1, gphi, "replace")
     call io_save(ifile, 2, gu*a, "old")
     call io_save(ifile, 3, gv*a, "old")
-    call legendre_synthesis(sphi_old,gphi_old)
-    gphi = gphi_old
+!    call legendre_synthesis(sphi_old,gphi_old)
+!    gphi = gphi_old
+    minmax(1) = minval(gphi)
+    minmax(2) = maxval(gphi)
+    gphi_old(:,:) = gphi(:,:)
     print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
     print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
     print *, "step=0 t=0"
@@ -104,20 +108,20 @@ contains
     use interpolate_module, only: &
       interpolate_set, interpolate_setd, interpolate_setdx, &
       interpolate_bilinear, interpolate_bicubic, interpolate_polin2, &
-      interpolate_linpol, interpolate_setdx, interpolate_spcher
+      interpolate_linpol, interpolate_setdx, interpolate_spcher, interpolate_diff
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
     implicit none
 
     real(kind=dp), intent(in) :: t, dt
 
-    integer(kind=i4b) :: i, j, m
+    integer(kind=i4b) :: i, j, m, n
     real(kind=dp) :: eps, dlonr, knt
     real(kind=dp), dimension(nlon) :: gphitmp
 
     select case(wind)
-!      case("sbody ")
-!        call uv_sbody(lon,latitudes,gu,gv)
+      case("sbody ")
+        call uv_sbody(lon,latitudes,gu,gv)
       case("nodiv ")
         call uv_nodiv(t,lon,latitudes,gu,gv)
     end select
@@ -131,9 +135,9 @@ contains
       do j=1, nlat
         gphi_old(:,j) = gphi_old(:,j)*wgt(j)*coslatr(j)
       end do
-      if ((imethod=="sph   ").or.(imethod=="fdy   ").or.(imethod=="spcher")) then
-        call legendre_analysis(gphi_old,sphi_old)
-      end if
+    end if
+    if ((imethod=="sph   ").or.(imethod=="fdy   ").or.(imethod=="spcher")) then
+      call legendre_analysis(gphi_old,sphi_old)
     end if
 
 ! calculate spectral derivatives
@@ -187,19 +191,28 @@ contains
         (imethod=="fdy   ")) then
       call interpolate_setd(gphix, gphiy, gphixy)
     end if
+    minmax(1) = min(minmax(1),minval(gphi))
+    minmax(2) = max(minmax(2),maxval(gphi))
+    if (fmono) then
+      call interpolate_diff()
+    end if
     do j=1, nlat
       do i=1, nlon
         select case (imethod)
           case ("bilin ") ! monotonicity is guranteed
             call interpolate_bilinear(deplon(i,j), deplat(i,j), gphi(i,j))
           case ("fd    ", "sph   ", "fdy   ")
-            call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi(i,j), monotonic=fmono)
+            call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi(i,j), &
+              monotonic=fmono, minmax=minmax)
           case ("polin2")
-            call interpolate_polin2(deplon(i,j), deplat(i,j), gphi(i,j), monotonic=fmono)
+            call interpolate_polin2(deplon(i,j), deplat(i,j), gphi(i,j), &
+              monotonic=fmono, minmax=minmax)
           case ("linpol")
-            call interpolate_linpol(deplon(i,j), deplat(i,j), gphi(i,j), monotonic=fmono)
+            call interpolate_linpol(deplon(i,j), deplat(i,j), gphi(i,j), &
+              monotonic=fmono, minmax=minmax)
           case ("spcher")
-            call interpolate_spcher(deplon(i,j), deplat(i,j), gphi(i,j), monotonic=fmono)
+            call interpolate_spcher(deplon(i,j), deplat(i,j), gphi(i,j), &
+              monotonic=fmono, minmax=minmax)
         end select
       end do
     end do

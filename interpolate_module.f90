@@ -20,16 +20,17 @@ module interpolate_module
   integer(kind=i4b), dimension(4), private :: is, js
   real(kind=dp), private :: u, t, dlon
   real(kind=dp), dimension(:), allocatable, private :: lonf, latf
-  real(kind=dp), dimension(:,:), allocatable, private :: ff, ffx, ffy, ffxy, fu, fv
+  real(kind=dp), dimension(:,:), allocatable, private :: &
+    ff, ffx, ffy, ffxy, fu, fv, ffxl, ffyl
 
-  private :: find_stencil
+  private :: find_stencil, quasimonotone_filter, quasimonotone_filter_bicubic
   public :: interpolate_init, interpolate_clean, &
             interpolate_set, interpolate_setuv, &
             interpolate_setd, interpolate_setdx, &
             interpolate_bilinear, interpolate_bilinearuv, &
             interpolate_polin2, interpolate_polin2uv, &
             interpolate_bicubic, interpolate_linpol, &
-            interpolate_spcher
+            interpolate_spcher, interpolate_diff
 
 contains
 
@@ -56,6 +57,7 @@ contains
 
     allocate(lonf(nx1:nx2), latf(ny1:ny2), ff(nx1:nx2,ny1:ny2), &
              ffx(nx1:nx2,ny1:ny2), ffy(nx1:nx2,ny1:ny2), ffxy(nx1:nx2,ny1:ny2), &
+             ffxl(nx1:nx2,ny1:ny2), ffyl(nx1:nx2,ny1:ny2), &
              fu(nx1:nx2,ny1:ny2),fv(nx1:nx2,ny1:ny2))
 
     dlon = pi2/nx
@@ -73,7 +75,7 @@ contains
   subroutine interpolate_clean()
     implicit none
 
-    deallocate(lonf, latf, ff, ffx, ffy, ffxy, fu, fv)
+    deallocate(lonf, latf, ff, ffx, ffy, ffxy, fu, fv, ffxl, ffyl)
 
   end subroutine  interpolate_clean
 
@@ -131,18 +133,18 @@ contains
 
   end subroutine interpolate_bilinearuv
 
-  subroutine interpolate_bicubic(lon, lat, fi, monotonic)
+  subroutine interpolate_bicubic(lon, lat, fi, monotonic, minmax)
     use bicubic_module, only: bcucof, bcuint, bcuintp
     implicit none
 
     real(kind=dp), intent(in) :: lon, lat
     real(kind=dp), intent(out) :: fi
     logical, optional, intent(in) :: monotonic
+    real(kind=dp), optional, dimension(2), intent(in) :: minmax
 
     real(kind=dp), dimension(4) :: z, zx, zy, zxy
     integer(kind=i4b) :: k
     real(kind=dp) :: dlat
-    real(kind=dp), dimension(4) :: c
 
     call find_stencil(lon, lat)
     dlat = latf(js(4)) - latf(js(1))
@@ -160,21 +162,25 @@ contains
 !      fi = bcuintp(t,u)
 !    end if
 
-! Bermejo and Staniforth 1992
     if (present(monotonic).and.(monotonic)) then
-      fi = min(fi,maxval(z))
-      fi = max(fi,minval(z))
+!      call quasimonotone_filter_bicubic(fi,is(1),js(1))
+      call quasimonotone_filter(fi,is(1),js(1))
     end if
-
+    if (present(minmax).and.(minmax(1)/=minmax(2))) then
+! Ostiguy and Laprise 1990
+      fi = max(minmax(1),min(minmax(2),fi))
+    end if
+   
   end subroutine interpolate_bicubic
 
-  subroutine interpolate_polin2(lon, lat, fi, monotonic)
+  subroutine interpolate_polin2(lon, lat, fi, monotonic, minmax)
     use polint_module, only : polin2
     implicit none
 
     real(kind=dp), intent(in) :: lon, lat
     real(kind=dp), intent(out) :: fi
     logical, optional, intent(in) :: monotonic
+    real(kind=dp), optional, dimension(2), intent(in) :: minmax
 
     integer(kind=i4b) :: i0, i1, i2, j0, j1, j2
     real(kind=dp) :: dfi
@@ -188,11 +194,6 @@ contains
     j2 = j0 + nh + 1
     call polin2(lonf(i1:i2), latf(j1:j2), ff(i1:i2,j1:j2), lon, lat, fi, dfi)
 
-! Bermejo and Staniforth 1992
-    if (present(monotonic).and.(monotonic)) then
-      fi = min(fi,maxval(ff(i0:i0+1,j0:j0+1)))
-      fi = max(fi,minval(ff(i0:i0+1,j0:j0+1)))
-    end if
 
   end subroutine interpolate_polin2
 
@@ -230,13 +231,14 @@ contains
 
   end subroutine interpolate_polin2uv
 
-  subroutine interpolate_linpol(lon, lat, fi, monotonic)
+  subroutine interpolate_linpol(lon, lat, fi, monotonic, minmax)
     use polint_module, only : polint
     implicit none
 
     real(kind=dp), intent(in) :: lon, lat
     real(kind=dp), intent(out) :: fi
     logical, optional, intent(in) :: monotonic
+    real(kind=dp), optional, dimension(2), intent(in) :: minmax
 
     integer(kind=i4b) :: i0, i1, i2, j0, j1, j2, j
     real(kind=dp) :: dfi
@@ -260,15 +262,17 @@ contains
     end do
     call polint(latf(j1:j2), ytmp, lat, fi, dfi)
 
-! Bermejo and Staniforth 1992
     if (present(monotonic).and.(monotonic)) then
-      fi = min(fi,maxval(ff(i0:i0+1,j0:j0+1)))
-      fi = max(fi,minval(ff(i0:i0+1,j0:j0+1)))
+      call quasimonotone_filter(fi,is(1),js(1))
+    end if
+    if (present(minmax).and.(minmax(1)/=minmax(2))) then
+! Ostiguy and Laprise 1990
+      fi = max(minmax(1),min(minmax(2),fi))
     end if
 
   end subroutine interpolate_linpol
 
-  subroutine interpolate_spcher(lon, lat, fi, monotonic)
+  subroutine interpolate_spcher(lon, lat, fi, monotonic, minmax)
     use cubicspline_module, only : cubicspline_interpolate
     use polint_module, only : polint
     implicit none
@@ -276,6 +280,7 @@ contains
     real(kind=dp), intent(in) :: lon, lat
     real(kind=dp), intent(out) :: fi
     logical, optional, intent(in) :: monotonic
+    real(kind=dp), optional, dimension(2), intent(in) :: minmax
 
     integer(kind=i4b) :: i0, j0, j1, j2, j
     real(kind=dp) :: dfi
@@ -296,10 +301,12 @@ contains
     end do
     call polint(latf(j1:j2), ytmp, lat, fi, dfi)
 
-! Bermejo and Staniforth 1992
     if (present(monotonic).and.(monotonic)) then
-      fi = min(fi,maxval(ff(i0:i0+1,j0:j0+1)))
-      fi = max(fi,minval(ff(i0:i0+1,j0:j0+1)))
+      call quasimonotone_filter(fi,is(1),js(1))
+    end if
+    if (present(minmax).and.(minmax(1)/=minmax(2))) then
+! Ostiguy and Laprise 1990
+      fi = max(minmax(1),min(minmax(2),fi))
     end if
 
   end subroutine interpolate_spcher
@@ -410,6 +417,18 @@ contains
 
   end subroutine interpolate_setdx
 
+  subroutine interpolate_diff()
+    implicit none
+
+    integer(kind=i4b) :: i, j
+
+    forall(i=1:nx, j=1:ny)
+      ffxl(i,j) = ff(i+1,j) - ff(i,j)
+      ffyl(i,j) = ff(i,j+1) - ff(i,j)
+    end forall
+
+  end subroutine interpolate_diff
+
   subroutine find_stencil(lon, lat)
     implicit none
 
@@ -431,5 +450,95 @@ contains
     u = (lat-latf(j))/(latf(j+1)-latf(j))
 
   end subroutine find_stencil
+
+  subroutine quasimonotone_filter(fi,i0,j0)
+    implicit none
+
+    real(kind=dp), intent(inout) :: fi
+    integer(kind=i4b), intent(in) :: i0, j0
+    logical :: lmono
+
+! apply filter to a cell that should be monotonic
+    lmono = .false.
+    if (n/2>=2) then
+      lmono = .not. ( &! Nair et al. 1999
+        ((ffxl(i0-2,j0)  *ffxl(i0-1,j0)  >0.0_dp).and. &
+         (ffxl(i0-1,j0)  *ffxl(i0+1,j0)  <0.0_dp).and. &
+         (ffxl(i0+1,j0)  *ffxl(i0+2,j0)  >0.0_dp)).or. &
+        ((ffxl(i0-2,j0+1)*ffxl(i0-1,j0+1)>0.0_dp).and. &
+         (ffxl(i0-1,j0+1)*ffxl(i0+1,j0+1)<0.0_dp).and. &
+         (ffxl(i0+1,j0+1)*ffxl(i0+2,j0+1)>0.0_dp)).or. &
+        ((ffyl(i0,  j0-2)*ffyl(i0,  j0-1)>0.0_dp).and. &
+         (ffyl(i0,  j0-1)*ffyl(i0,  j0+1)<0.0_dp).and. &
+         (ffyl(i0,  j0+1)*ffyl(i0,  j0+2)>0.0_dp)).or. &
+        ((ffyl(i0+1,j0-2)*ffyl(i0+1,j0-1)>0.0_dp).and. &
+         (ffyl(i0+1,j0-1)*ffyl(i0+1,j0+1)<0.0_dp).and. &
+         (ffyl(i0+1,j0+1)*ffyl(i0+1,j0+2)>0.0_dp)) )
+    else
+      lmono = & ! Sun et al. 1996
+        (ffxl(i0-1,j0)*ffxl(i0+1,j0)>=0.0_dp).and. &
+        (ffxl(i0-1,j0+1)*ffxl(i0+1,j0+1)>=0.0_dp).and. &
+        (ffyl(i0,j0-1)*ffyl(i0,j0+1)>=0.0_dp).and. &
+        (ffyl(i0+1,j0-1)*ff(i0+1,j0+1)>=0.0_dp)
+    end if
+    if (lmono) then
+! Bermejo and Staniforth 1992
+      fi = max(min(fi,maxval(ff(i0:i0+1,j0:j0+1))),minval(ff(i0:i0+1,j0:j0+1)))
+    end if
+
+  end subroutine quasimonotone_filter
+
+  subroutine quasimonotone_filter_bicubic(fi,i0,j0)
+    implicit none
+
+    real(kind=dp), intent(inout) :: fi
+    integer(kind=i4b), intent(in) :: i0, j0
+    logical :: lmono
+
+! apply filter to a cell that should be monotonic
+    lmono = .false.
+    if (n/2>=2) then
+      lmono = .not. ( &! Nair et al. 1999
+        ((ffxl(i0-2,j0)  *ffxl(i0-1,j0)  >0.0_dp).and. &
+         (ffxl(i0-1,j0)  *ffxl(i0+1,j0)  <0.0_dp).and. &
+         (ffxl(i0+1,j0)  *ffxl(i0+2,j0)  >0.0_dp).and. &
+         (ffxl(i0-1,j0)  *ffx( i0,  j0)  >0.0_dp).and. &
+         (ffxl(i0+1,j0)  *ffx( i0+1,j0)  >0.0_dp)).or. &
+        ((ffxl(i0-2,j0+1)*ffxl(i0-1,j0+1)>0.0_dp).and. &
+         (ffxl(i0-1,j0+1)*ffxl(i0+1,j0+1)<0.0_dp).and. &
+         (ffxl(i0+1,j0+1)*ffxl(i0+2,j0+1)>0.0_dp).and. &
+         (ffxl(i0-1,j0+1)*ffx( i0,  j0+1)>0.0_dp).and. &
+         (ffxl(i0+1,j0+1)*ffx( i0+1,j0+1)>0.0_dp)).or. &
+        ((ffyl(i0,  j0-2)*ffyl(i0,  j0-1)>0.0_dp).and. &
+         (ffyl(i0,  j0-1)*ffyl(i0,  j0+1)<0.0_dp).and. &
+         (ffyl(i0,  j0+1)*ffyl(i0,  j0+2)>0.0_dp).and. &
+         (ffyl(i0,  j0-1)*ffy( i0,  j0)  >0.0_dp).and. &
+         (ffyl(i0,  j0+1)*ffy( i0,  j0+1)>0.0_dp)).or. &
+        ((ffyl(i0+1,j0-2)*ffyl(i0+1,j0-1)>0.0_dp).and. &
+         (ffyl(i0+1,j0-1)*ffyl(i0+1,j0+1)<0.0_dp).and. &
+         (ffyl(i0+1,j0+1)*ffyl(i0+1,j0+2)>0.0_dp).and. &
+         (ffyl(i0+1,j0-1)*ffy( i0+1,j0)  >0.0_dp).and. &
+         (ffyl(i0+1,j0+1)*ffy( i0+1,j0+1)>0.0_dp)) )
+    else
+      lmono = .not. ( &! Sun et al. 1996
+        ((ffxl(i0-1,j0)  *ffxl(i0+1,j0)  <0.0_dp).and. &
+         (ffxl(i0-1,j0)  *ffx( i0,  j0)  >0.0_dp).and. &
+         (ffxl(i0+1,j0)  *ffx( i0+1,j0)  >0.0_dp)).or. &
+        ((ffxl(i0-1,j0+1)*ffxl(i0+1,j0+1)<0.0_dp).and. &
+         (ffxl(i0-1,j0+1)*ffx( i0,  j0+1)>0.0_dp).and. &
+         (ffxl(i0+1,j0+1)*ffx( i0+1,j0+1)>0.0_dp)).or. &
+        ((ffyl(i0,  j0-1)*ffyl(i0,  j0+1)<0.0_dp).and. &
+         (ffyl(i0,  j0-1)*ffy( i0,  j0)  >0.0_dp).and. &
+         (ffyl(i0,  j0+1)*ffy( i0,  j0+1)>0.0_dp)).or. &
+        ((ffyl(i0+1,j0-1)*ffyl(i0+1,j0+1)<0.0_dp).and. &
+         (ffyl(i0+1,j0-1)*ffy( i0+1,j0)  >0.0_dp).and. &
+         (ffyl(i0+1,j0+1)*ffy( i0+1,j0+1)>0.0_dp)) )
+    end if
+    if (lmono) then
+! Bermejo and Staniforth 1992
+      fi = max(min(fi,maxval(ff(i0:i0+1,j0:j0+1))),minval(ff(i0:i0+1,j0:j0+1)))
+    end if
+
+  end subroutine quasimonotone_filter_bicubic
 
 end module interpolate_module

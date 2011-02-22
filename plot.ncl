@@ -44,7 +44,7 @@ begin
   u = x
   v = x
 ; fname1="semi-lag/history_L1e4km_bicubic.dat"
- fname1 = "history.dat"
+ fname1 = "hist.dat"
  u = fbindirread(fname1, 1, (/ny, nx/), "double")
  v = fbindirread(fname1, 2, (/ny, nx/), "double")
 

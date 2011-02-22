@@ -10,7 +10,7 @@ begin
   dt = 5./nt
   tstep =1 
   dev = "x11"
-  fname = "history.dat"
+  fname = "hist.dat"
 ;  fname = "init.dat"
   a = 6.371e6
   pi = acos(-1.)
