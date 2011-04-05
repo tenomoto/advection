@@ -8,7 +8,8 @@ module semilag_module
   integer(kind=i4b), private :: nsave = 0!, n = 3
   real(kind=dp), dimension(2) :: minmax = 0.0_dp
   real(kind=dp), dimension(:,:), allocatable, private :: &
-    gphi_old, gphix, gphiy, gphixy, midlon, midlat, deplon, deplat
+    gphi_old, gphix, gphiy, gphixy, midlon, midlat, deplon, deplat, &
+    gmax, gmin, w
 
   character(len=6), dimension(7), parameter, private :: methods = &
     (/"bilin ", "polin2", "linpol", "fd    ", "sph   ", "fdy   ", "spcher"/)
@@ -36,6 +37,7 @@ contains
 
     allocate(gphi_old(nlon,nlat), gphix(nlon,nlat),gphiy(nlon,nlat),gphixy(nlon,nlat), &
              midlon(nlon,nlat),midlat(nlon,nlat),deplon(nlon,nlat),deplat(nlon,nlat))
+    allocate(gmax(nlon,nlat),gmin(nlon,nlat),w(nlon,nlat))
     call interpolate_init(gphi)
 
     print *, "Saving initial value"
@@ -61,7 +63,10 @@ contains
     end do
     do j=1, nlat
       midlat(:,j) = latitudes(j)
+      w(:,j) = wgt(j)
     end do
+    gmin(:,:) = minmax(1)
+    gmax(:,:) = minmax(2)
 
   end subroutine semilag_init
 
@@ -111,6 +116,7 @@ contains
       interpolate_linpol, interpolate_setdx, interpolate_spcher, interpolate_diff
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
+    use mass_module, only: mass_correct
     implicit none
 
     real(kind=dp), intent(in) :: t, dt
@@ -131,11 +137,6 @@ contains
       call legendre_synthesis(sphi_old,gphi_old)
     end if
 
-    if (conserve) then
-      do j=1, nlat
-        gphi_old(:,j) = gphi_old(:,j)*wgt(j)*coslatr(j)
-      end do
-    end if
     if ((imethod=="sph   ").or.(imethod=="fdy   ").or.(imethod=="spcher")) then
       call legendre_analysis(gphi_old,sphi_old)
     end if
@@ -193,6 +194,8 @@ contains
     end if
     minmax(1) = min(minmax(1),minval(gphi))
     minmax(2) = max(minmax(2),maxval(gphi))
+    gmin(:,:) = minmax(1)
+    gmax(:,:) = minmax(2)
     if (fmono) then
       call interpolate_diff()
     end if
@@ -218,9 +221,7 @@ contains
     end do
 
     if (conserve) then
-      do j=1, nlat
-        gphi(:,j) = gphi(:,j)/(wgt(j)*coslatr(j))
-      end do
+      call mass_correct(gphi,gphi_old,gmax,gmin,w)
     end if
 
 ! spectral

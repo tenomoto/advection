@@ -9,7 +9,8 @@ begin
   nt =  20 
   dt = 5./nt
   tstep =1 
-;  dev = "x11"
+  dev = "x11"
+  run = "correct"
 ;  run = "eulerian"
 ; dir = "semi-lag"
 ; run = "2500km_bilin"
@@ -34,6 +35,8 @@ begin
   lon@units = "degrees_east"
   gau_info = gaus(ny/2)
   lat = doubletofloat(gau_info(ny-1:0,0))
+  wgty = doubletofloat(gau_info(:,1))
+  wgtx = 1.0
   lat!0 = "lat"
   lat&lat = lat
   lat@units = "degrees_north"
@@ -111,6 +114,7 @@ begin
   x0 = fbindirread(fname, 0, (/ny, nx/), "double")
   x = x-x0
   print("error max phi="+max(x)+" min phi="+min(x))
+  print("global mean error="+wgt_areaave(x,wgty,wgtx,0))
   rese@gsnLeftString = "max="+max(x)
   rese@gsnRightString = "min="+min(x)
   plot = gsn_csm_contour_map(wks, x, rese)

@@ -4,6 +4,6 @@
 &grid nlon=120  nlat=60 ntrunc=39 phi0="ghill2" wind="nodiv"/
 &time nstep=60 hstep=3 deltat=0.0833333333333333 etf=0.00d0
  model="slag" imethod="sph" imethoduv="bilin"/
-&semilag spectral=T fmono=F conserve=F/
+&semilag spectral=F fmono=T conserve=T/
 &interpolate n=3/
 EOF
