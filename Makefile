@@ -42,7 +42,7 @@ cubicspline_module.o : kind_module.o
 uv_module.o : kind_module.o
 grid_module.o : kind_module.o legendre_transform_module.o init_module.o uv_module.o
 eulerian_module.o : kind_module.o planet_module.o io_module.o grid_module.o time_module.o legendre_transform_module.o uv_module.o
-semilag_module.o : kind_module.o io_module.o grid_module.o time_module.o legendre_transform_module.o upstream_module.o
+semilag_module.o : kind_module.o io_module.o grid_module.o time_module.o legendre_transform_module.o upstream_module.o mass_module.o
 nisl_module.o : kind_module.o io_module.o grid_module.o time_module.o legendre_transform_module.o upstream_module.o sphere_module.o
 mass_module.o : kind_module.o
 main.o : grid_module.o time_module.o eulerian_module.o semilag_module.o nisl_module.o

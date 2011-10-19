@@ -16,7 +16,7 @@ module interpolate_module
 ! 2004-09-10 some simplification
 ! 2004-03
 
-  integer(kind=i4b), private :: nx, ny, n=3, nh, nx1, nx2, ny1, ny2 
+  integer(kind=i4b), private :: nx, ny, n=3, nh, nhalo, nx1, nx2, ny1, ny2 
   integer(kind=i4b), dimension(4), private :: is, js
   real(kind=dp), private :: u, t, dlon
   real(kind=dp), dimension(:), allocatable, private :: lonf, latf
@@ -42,18 +42,20 @@ contains
 
     integer(kind=i4b) :: i, j
 
-    namelist /interpolate/ n
+    namelist /interpolate/ n, nhalo
+
+    nh = n/2
+    nhalo = nh
 
     read(unit=5, nml=interpolate)
     write(unit=6, nml=interpolate)
 
     nx = size(f,1)
     ny = size(f,2)
-    nh = n/2
-    nx1 = 1 - nh
-    nx2 = nx + nh + 1
-    ny1 = 1 - nh - 1
-    ny2 = ny + nh + 1
+    nx1 = 1 - nhalo
+    nx2 = nx + nhalo + 1
+    ny1 = 1 - nhalo - 1
+    ny2 = ny + nhalo + 1
 
     allocate(lonf(nx1:nx2), latf(ny1:ny2), ff(nx1:nx2,ny1:ny2), &
              ffx(nx1:nx2,ny1:ny2), ffy(nx1:nx2,ny1:ny2), ffxy(nx1:nx2,ny1:ny2), &
@@ -65,7 +67,7 @@ contains
       lonf(i) = dlon*(i-1)
     end do
     latf(1:ny) = latitudes
-    do j=1, nh+1
+    do j=1, nhalo+1
       latf(1-j)   = pih + (pih - latitudes(j))
       latf(ny+j)   = -pih + (-pih - latitudes(ny-j+1))
     end do
@@ -460,7 +462,7 @@ contains
 
 ! apply filter to a cell that should be monotonic
     lmono = .false.
-    if (n/2>=2) then
+    if (nhalo>=2) then
       lmono = .not. ( &! Nair et al. 1999
         ((ffxl(i0-2,j0)  *ffxl(i0-1,j0)  >0.0_dp).and. &
          (ffxl(i0-1,j0)  *ffxl(i0+1,j0)  <0.0_dp).and. &
@@ -497,7 +499,7 @@ contains
 
 ! apply filter to a cell that should be monotonic
     lmono = .false.
-    if (n/2>=2) then
+    if (nhalo>=2) then
       lmono = .not. ( &! Nair et al. 1999
         ((ffxl(i0-2,j0)  *ffxl(i0-1,j0)  >0.0_dp).and. &
          (ffxl(i0-1,j0)  *ffxl(i0+1,j0)  <0.0_dp).and. &
