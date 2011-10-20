@@ -22,7 +22,7 @@ contains
       legendre_init, legendre_analysis
     use init_module, only: &
       init_ghill, init_ghill2, init_cbell2, init_scyli2, init_ccbel2
-    use uv_module, only: uv_sbody, uv_nodiv
+    use uv_module, only: uv_sbody, uv_nodiv, uv_div
     implicit none
 
     namelist /grid/ ntrunc, nlon, nlat, phi0, wind
@@ -78,6 +78,8 @@ contains
         call uv_sbody(lon,lat,gu,gv)
       case("nodiv ")
         call uv_nodiv(0.0_dp,lon,lat,gu,gv)
+      case("div   ")
+        call uv_div(0.0_dp,lon,lat,gu,gv)
       case default
         print *, "No matching initial wind"
         stop

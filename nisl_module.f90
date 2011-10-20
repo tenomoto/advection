@@ -1,7 +1,7 @@
 module nisl_module
 
   use kind_module, only: i4b, dp
-  use grid_module, only: nlon, nlat, ntrunc, &
+  use grid_module, only: nlon, nlat, ntrunc, wind, &
     gu, gv, gphi, sphi_old, sphi, longitudes=>lon, latitudes=>lat, coslatr
   private
   
@@ -105,7 +105,7 @@ contains
 
   subroutine update(t,dt)
     use time_module, only: etf, imethod
-    use uv_module, only: uv_nodiv
+    use uv_module, only: uv_nodiv, uv_div
     use upstream_module, only: find_points
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
@@ -116,7 +116,12 @@ contains
     integer(kind=i4b) :: i, j, m
     real(kind=dp), intent(in) :: t, dt
 
-    call uv_nodiv(t,longitudes,latitudes,gu,gv)
+    select case(wind)
+      case("nodiv ")
+        call uv_nodiv(t,longitudes,latitudes,gu,gv)
+      case("div   ")
+        call uv_div(t,longitudes,latitudes,gu,gv)
+    end select
     call find_points(gu, gv, dt, midlon, midlat, deplon, deplat)
     call calc_niuv(dt)
 

@@ -3,7 +3,7 @@ module eulerian_module
   use planet_module, only: a=>planet_radius
   use grid_module, only: &
     nlon, nlat, ntrunc, &
-    gu, gv, gphi, sphi, sphi_old, lon, lat, coslatr
+    gu, gv, gphi, sphi, sphi_old, lon, lat, coslatr, wind
   use time_module, only: nstep, hstep, deltat, ifile, hfile
   use legendre_transform_module, only: &
     legendre_analysis, legendre_synthesis, &
@@ -80,7 +80,7 @@ contains
 
   subroutine update(t,dt)
     use time_module, only: etf, kappa
-    use uv_module, only: uv_nodiv
+    use uv_module, only: uv_nodiv, uv_div
     implicit none
 
     real(kind=dp), intent(in) :: t, dt
@@ -88,7 +88,12 @@ contains
     real(kind=dp) :: knt
     integer(kind=i4b) :: i, j, m, n
 
-    call uv_nodiv(t,lon,lat,gu,gv)
+    select case(wind)
+      case("nodiv ")
+        call uv_nodiv(t,lon,lat,gu,gv)
+      case("div   ")
+        call uv_div(t,lon,lat,gu,gv)
+    end select 
     call legendre_synthesis(sphi_old, gphi)
 ! dF/dlon
     call legendre_synthesis_dlon(sphi, dgphi)

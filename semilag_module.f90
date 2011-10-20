@@ -109,7 +109,7 @@ contains
       pi=>math_pi, pir=>math_pir, pih=>math_pih
     use upstream_module, only: find_points
     use time_module, only: kappa, imethod, deltat
-    use uv_module, only: uv_sbody, uv_nodiv
+    use uv_module, only: uv_sbody, uv_nodiv, uv_div
     use interpolate_module, only: &
       interpolate_set, interpolate_setd, interpolate_setdx, &
       interpolate_bilinear, interpolate_bicubic, interpolate_polin2, &
@@ -130,6 +130,8 @@ contains
         call uv_sbody(lon,latitudes,gu,gv)
       case("nodiv ")
         call uv_nodiv(t,lon,latitudes,gu,gv)
+      case("div   ")
+        call uv_div(t,lon,latitudes,gu,gv)
     end select
     call find_points(gu, gv, 0.5_dp*dt, midlon, midlat, deplon, deplat)
 

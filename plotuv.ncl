@@ -42,8 +42,8 @@ begin
   res@mpOutlineBoundarySets = "NoBoundaries"
   res@tiMainString = fname
   res@vcMinDistanceF = 0.017
-  res@vcRefMagnitudeF = 2.0
-  res@vcRefLengthF = 0.01
+  res@vcRefMagnitudeF = 1.0
+  res@vcRefLengthF = 0.02
 
   do i=0, nt, tstep
     res@gsnCenterString = "day="+i*dt
