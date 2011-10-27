@@ -1,0 +1,70 @@
+advection
+
+an advection model on the sphere using a Gaussian latitutude-
+lontitude grid
+
+[Takeshi Enomoto](mailto:takeshi.enomoto@gmail.com)
+
+### Prerequisite
+
+* A Fortran compiler. Tested with [g95](http://www.g95.org)
+* FFTW 3.3 [home page](http://www.fftw.org/)
+
+### Compilation
+
+* Edit Makefile
+ - FC, FFLAGS and LDFLAGS (path to libfftw3*.*)
+
+### Tests
+
+* go_adv: the Gaussian hill test of Ritchie (1987)
+* go_adv2: tracer transport test case of Lauritzen et al., submitted to JCP
+
+### namelists
+* planet
+ - planet_radius: radius of the planet
+ - day_in_sec: definition of a day (s)
+* grid
+ - nlon: number of zonal grid points
+ - nlat: number of meridional grid points (=nlon/2
+ - ntrunc: truncation wave number
+           quradratic grid: nlon/3-1
+           linear grid: nlon/2-1
+ - phi0: initial tracer distribution
+     ghill: a single Gaussian hill (Ritchie 1987)
+     ghill2: two Gaussian hills (Lauritzen et al.)
+     cbell2: two cosine bells
+     scyli2: two slotted cyliners
+     ccbell2: two correlated cosine bells
+ - wind: background flow
+     sbody: solid body (Ritchie 1987)
+     nodiv: non divergent (Lauritzen et al.)
+     div: divergetn (Laurizen et al.) 
+* time
+ - nstep: number of steps
+ - hstep: output interval
+ - deltat: time step
+ - etf: time filter coefficient (model=euler or nisl)
+ - tau: time scale of numerical diffusion (model=euler or nisl)
+ - model: advection scheme
+     euler: Eulerian
+     slag: semi-Lagrangian
+     nisl: non-interpolating semi-Lagrangian
+ - imethod: interpolation method
+     bilin: bilinear
+     polin2: 2D Lagrange
+     linpol: 1d Lagrange (quasi-cubic of Ritchie et al. 1995)
+     fd: bicubic with derivatives by finite difference 
+     sph: spectral bicubic
+     fdy: bicubic with zonal spectral derivatives and
+          meridonal finite-difference derivatives
+     spcher: Hermite with spectral derivatives in the zonal
+          Lagrange in the meridional
+     imethoduv: interpolation for winds bilin or polin2
+* semilag: options for semi-Lagrangian model
+ - spectral: time integration in the spectral space
+ - fmono: force quasi-monotonicity (Nair et al. 1999)
+ - conserve: fix global mass (Sun and Sun 2004)
+* interpolate:
+ - n: order of Lagrange interpolation (3 for cubic)
+ - nhalo: number of halo
