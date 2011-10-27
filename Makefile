@@ -48,7 +48,7 @@ mass_module.o : kind_module.o
 main.o : grid_module.o time_module.o eulerian_module.o semilag_module.o nisl_module.o
 
 clean :
-	rm -f *.o *.mod $(TARGET)
+	rm -f *.o *.mod $(TARGET) *.dat $(TARGET).log
 
 .f90.o :
 	$(FC) $(FFLAGS) $< -c
