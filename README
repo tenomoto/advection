@@ -50,7 +50,8 @@ lontitude grid
      euler: Eulerian
      slag: semi-Lagrangian
      nisl: non-interpolating semi-Lagrangian
- - imethod: interpolation method
+ - imethod: interpolation method (model=slag or nisl)
+       NB. only bilin or polin2 when nisl
      bilin: bilinear
      polin2: 2D Lagrange
      linpol: 1d Lagrange (quasi-cubic of Ritchie et al. 1995)
@@ -60,7 +61,7 @@ lontitude grid
           meridonal finite-difference derivatives
      spcher: Hermite with spectral derivatives in the zonal
           Lagrange in the meridional
-     imethoduv: interpolation for winds bilin or polin2
+ - imethoduv: interpolation for winds bilin or polin2
 * semilag: options for semi-Lagrangian model
  - spectral: time integration in the spectral space
  - fmono: force quasi-monotonicity (Nair et al. 1999)
