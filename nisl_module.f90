@@ -8,7 +8,7 @@ module nisl_module
   integer(kind=i4b), private :: nsave = 0
   integer(kind=i4b), allocatable, private :: p(:,:), q(:,:)
   real(kind=dp), dimension(:,:), allocatable, private :: &
-    gphi_old, dgphi, dgphim, gphim,&
+    gphi_old, dgphi, dgphim, gphim, &
     midlon, midlat, deplon, deplat, gum, gvm
   complex(kind=dp), dimension(:,:), allocatable, private :: sphi1
 
@@ -36,8 +36,8 @@ contains
 
     print *, "Saving initial value"
     call io_save(ifile, 1, gphi, "replace")
-    call io_save(ifile, 2, gu, "old")
-    call io_save(ifile, 3, gv, "old")
+    call io_save(ifile, 2, gu*a, "old")
+    call io_save(ifile, 3, gv*a, "old")
     call legendre_synthesis(sphi_old,gphi_old)
     gphi = gphi_old
     print *, "step=0 t=0"
@@ -45,8 +45,8 @@ contains
     print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
     print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
     call io_save(hfile, 1, gphi, "replace")
-    call io_save(hfile, 2, gu, "old")
-    call io_save(hfile, 3, gv, "old")
+    call io_save(hfile, 2, gu*a, "old")
+    call io_save(hfile, 3, gv*a, "old")
     nsave = 1
 
     do i=1, nlon
@@ -56,15 +56,15 @@ contains
       midlat(:,j) = latitudes(j)
     end do
 
-    print *, "step=1/2", " t=", real(0.5d0*deltat)
-    call update(0.25d0*deltat,0.5*deltat)
+!    print *, "step=1/2", " t=", real(0.5d0*deltat)
+!    call update(0.25d0*deltat,0.5d0*deltat)
     print *, "step=1", " t=", real(deltat)
     call update(0.5d0*deltat,deltat)
     if (hstep==1) then
       call legendre_synthesis(sphi, gphi)
       call io_save(hfile, 3*nsave+1, gphi, "old")
-      call io_save(hfile, 3*nsave+2, gu, "old")
-      call io_save(hfile, 3*nsave+3, gv, "old")
+      call io_save(hfile, 3*nsave+2, gu*a, "old")
+      call io_save(hfile, 3*nsave+3, gv*a, "old")
       nsave = nsave + 1
     end if
 
@@ -82,6 +82,7 @@ contains
 
   subroutine nisl_timeint()
     use time_module, only: nstep, hstep, deltat, hfile
+    use planet_module, only: a=>planet_radius
     use legendre_transform_module, only: legendre_synthesis
     use io_module, only: io_save
     implicit none
@@ -90,13 +91,13 @@ contains
 
     do i=2, nstep
       print *, "step=", i, " t=", real(i*deltat)
-      call update((i-1)*deltat,deltat)
+      call update((i-1)*deltat,2.0d0*deltat)
       if (mod(i,hstep)==0) then
         print *, "Saving step=", i
         call legendre_synthesis(sphi, gphi)
         call io_save(hfile, 3*nsave+1, gphi, "old")
-        call io_save(hfile, 3*nsave+2, gu, "old")
-        call io_save(hfile, 3*nsave+3, gv, "old")
+        call io_save(hfile, 3*nsave+2, gu*a, "old")
+        call io_save(hfile, 3*nsave+3, gv*a, "old")
         nsave = nsave + 1
       end if
     end do
@@ -111,10 +112,12 @@ contains
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
     use interpolate_module, only: &
       interpolate_set, interpolate_bilinear, interpolate_polin2
+    use mass_module, only: mass_correct
     implicit none
 
-    integer(kind=i4b) :: i, j, m
+    integer(kind=i4b) :: i, j, m, n
     real(kind=dp), intent(in) :: t, dt
+    real(kind=dp) :: knt
 
     select case(wind)
       case("nodiv ")
@@ -122,7 +125,7 @@ contains
       case("div   ")
         call uv_div(t,longitudes,latitudes,gu,gv)
     end select
-    call find_points(gu, gv, dt, midlon, midlat, deplon, deplat)
+    call find_points(gu, gv, 0.5d0*dt, midlon, midlat, deplon, deplat)
     call calc_niuv(dt)
 
     call legendre_synthesis(sphi_old, gphi_old)

@@ -81,6 +81,7 @@ contains
 
   subroutine semilag_timeint()
     use time_module, only: nstep, hstep, deltat, hfile
+    use planet_module, only: a=>planet_radius
     use legendre_transform_module, only: legendre_synthesis
     use io_module, only: io_save
     implicit none
@@ -96,8 +97,8 @@ contains
           call legendre_synthesis(sphi, gphi)
         end if
         call io_save(hfile, 3*nsave+1, gphi, "old")
-        call io_save(hfile, 3*nsave+2, gu, "old")
-        call io_save(hfile, 3*nsave+3, gv, "old")
+        call io_save(hfile, 3*nsave+2, gu*a, "old")
+        call io_save(hfile, 3*nsave+3, gv*a, "old")
         nsave = nsave + 1
       end if
     end do

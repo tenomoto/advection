@@ -31,14 +31,14 @@ contains
 
     print *, "Saving initial value"
     call io_save(ifile, 1, gphi, "replace")
-    call io_save(ifile, 2, gu, "old")
-    call io_save(ifile, 3, gv, "old")
+    call io_save(ifile, 2, gu*a, "old")
+    call io_save(ifile, 3, gv*a, "old")
     call legendre_synthesis(sphi,gphi)
     print *, "step=0 t=0"
     print *, "Saving step=0"
     call io_save(hfile, 1, gphi, "replace")
-    call io_save(hfile, 2, gu, "old")
-    call io_save(hfile, 3, gv, "old")
+    call io_save(hfile, 2, gu*a, "old")
+    call io_save(hfile, 3, gv*a, "old")
     nsave = 1
     print *, "step=1/2", " t=", real(0.5*deltat)
     call update(0.0d0*deltat,0.5d0*deltat)
@@ -46,8 +46,8 @@ contains
     call update(0.5d0*deltat,deltat)
     if (hstep==1) then
       call io_save(hfile, 3*nsave+1, gphi, "old")
-      call io_save(hfile, 3*nsave+2, gu, "old")
-      call io_save(hfile, 3*nsave+3, gv, "old")
+      call io_save(hfile, 3*nsave+2, gu*a, "old")
+      call io_save(hfile, 3*nsave+3, gv*a, "old")
       nsave = nsave + 1
     end if
 
@@ -70,8 +70,8 @@ contains
       if (mod(i,hstep)==0) then
         print *, "Saving step=", i
         call io_save(hfile, 3*nsave+1, gphi, "old")
-        call io_save(hfile, 3*nsave+2, gu, "old")
-        call io_save(hfile, 3*nsave+3, gv, "old")
+        call io_save(hfile, 3*nsave+2, gu*a, "old")
+        call io_save(hfile, 3*nsave+3, gv*a, "old")
         nsave = nsave + 1
       end if
     end do
