@@ -65,6 +65,8 @@ lontitude grid
 * semilag: options for semi-Lagrangian model
  - spectral: time integration in the spectral space
  - fmono: force quasi-monotonicity (Nair et al. 1999)
+ - clip: limit interpolated value to between max and min
+         (Ostiguy and Laprise 1990). Always T if fmono=T
  - conserve: fix global mass (Sun and Sun 2004)
 * interpolate:
  - n: order of Lagrange interpolation (3 for cubic)

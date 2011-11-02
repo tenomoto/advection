@@ -13,7 +13,8 @@ module semilag_module
 
   character(len=6), dimension(7), parameter, private :: methods = &
     (/"bilin ", "polin2", "linpol", "fd    ", "sph   ", "fdy   ", "spcher"/)
-  logical, private :: spectral = .true., fmono = .false., conserve = .false.
+  logical, private :: &
+    spectral = .true., fmono = .false., clip = .false., conserve = .false.
 
   private :: update
   public :: semilag_init, semilag_timeint, semilag_clean
@@ -30,14 +31,13 @@ contains
 
     integer(kind=i4b) :: i,j
 
-    namelist /semilag/ spectral, fmono, conserve
+    namelist /semilag/ spectral, fmono, clip, conserve
 
     read(unit=5, nml=semilag)
     write(unit=6, nml=semilag)
 
     allocate(gphi_old(nlon,nlat), gphix(nlon,nlat),gphiy(nlon,nlat),gphixy(nlon,nlat), &
              midlon(nlon,nlat),midlat(nlon,nlat),deplon(nlon,nlat),deplat(nlon,nlat))
-    allocate(gmax(nlon,nlat),gmin(nlon,nlat),w(nlon,nlat))
     call interpolate_init(gphi)
 
     print *, "Saving initial value"
@@ -46,8 +46,6 @@ contains
     call io_save(ifile, 3, gv*a, "old")
 !    call legendre_synthesis(sphi_old,gphi_old)
 !    gphi = gphi_old
-    minmax(1) = minval(gphi)
-    minmax(2) = maxval(gphi)
     gphi_old(:,:) = gphi(:,:)
     print *, "umax=", real(maxval(gu)*a), " umin=", real(minval(gu)*a)
     print *, "vmax=", real(maxval(gv)*a), " vmin=", real(minval(gv)*a)
@@ -63,10 +61,20 @@ contains
     end do
     do j=1, nlat
       midlat(:,j) = latitudes(j)
-      w(:,j) = wgt(j)
     end do
-    gmin(:,:) = minmax(1)
-    gmax(:,:) = minmax(2)
+
+    if (fmono.or.clip) then
+      minmax(1) = minval(gphi)
+      minmax(2) = maxval(gphi)
+    end if
+    if (conserve) then
+      allocate(gmax(nlon,nlat),gmin(nlon,nlat),w(nlon,nlat))
+      do j=1, nlat
+        w(:,j) = wgt(j)
+      end do
+      gmin(:,:) = minval(gphi)
+      gmax(:,:) = maxval(gphi)
+    end if
 
   end subroutine semilag_init
 
@@ -195,10 +203,14 @@ contains
         (imethod=="fdy   ")) then
       call interpolate_setd(gphix, gphiy, gphixy)
     end if
-    minmax(1) = min(minmax(1),minval(gphi))
-    minmax(2) = max(minmax(2),maxval(gphi))
-    gmin(:,:) = minmax(1)
-    gmax(:,:) = minmax(2)
+    if (fmono.or.clip) then
+      minmax(1) = min(minmax(1),minval(gphi))
+      minmax(2) = max(minmax(2),maxval(gphi))
+    end if
+    if (conserve) then
+      gmin(:,:) = min(minmax(1),minval(gphi))
+      gmax(:,:) = max(minmax(2),maxval(gphi))
+    end if
     if (fmono) then
       call interpolate_diff()
     end if

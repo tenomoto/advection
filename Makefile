@@ -19,7 +19,7 @@ SRC = kind_module.f90 math_module.f90 planet_module.f90 \
 	sphere_module.f90 io_module.f90 mass_module.f90 \
 	main.f90
 OBJ = ${SRC:.f90=.o}
-TARGET=adv
+TARGET=adv_test
 
 $(TARGET) : $(OBJ)
 	$(FC) $(LDFLAGS) $(OBJ) $(LDLIBS) -o $@
