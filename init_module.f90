@@ -52,17 +52,18 @@ contains
     real(kind=dp), parameter :: hmax = 0.95_dp, b0 = 5.0_dp
 
     integer(kind=i4b) :: i, j, k, nx, ny
-    real(kind=dp) :: x0, y0, z0, x, y, z
+!    real(kind=dp) :: x0, y0, z0, x, y, z
 
     nx = size(lon)
     ny = size(lat)
     gphi(:,:) = 0.0_dp
     do k=1, nc
-      call lonlat2xyz(lonc(k),latc(k),x0,y0,z0)
+!      call lonlat2xyz(lonc(k),latc(k),x0,y0,z0)
       do j=1, ny
         do i=1, nx
-          call lonlat2xyz(lon(i),lat(j),x,y,z)
-          gphi(i,j) = gphi(i,j) + hmax*exp(-b0*((x-x0)**2+(y-y0)**2+(z-z0)**2))
+!          call lonlat2xyz(lon(i),lat(j),x,y,z)
+!          gphi(i,j) = gphi(i,j) + hmax*exp(-b0*((x-x0)**2+(y-y0)**2+(z-z0)**2))
+          gphi(i,j) = gphi(i,j) + hmax*exp(-2*b0*(1.0_dp-cos(lat(j))*cos(lon(i)-lonc(k))))
         end do
       end do
     end do
