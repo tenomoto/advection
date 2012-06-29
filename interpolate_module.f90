@@ -481,7 +481,7 @@ contains
         (ffxl(i0-1,j0)*ffxl(i0+1,j0)>=0.0_dp).and. &
         (ffxl(i0-1,j0+1)*ffxl(i0+1,j0+1)>=0.0_dp).and. &
         (ffyl(i0,j0-1)*ffyl(i0,j0+1)>=0.0_dp).and. &
-        (ffyl(i0+1,j0-1)*ff(i0+1,j0+1)>=0.0_dp)
+        (ffyl(i0+1,j0-1)*ffyl(i0+1,j0+1)>=0.0_dp)
     end if
     if (lmono) then
 ! Bermejo and Staniforth 1992
